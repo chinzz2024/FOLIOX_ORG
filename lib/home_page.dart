@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:xml/xml.dart';
+import 'dart:convert'; // For JSON decoding
 import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
 import 'planner_page.dart';
 import 'login_page.dart';
@@ -13,7 +13,7 @@ class StockNewsPage extends StatefulWidget {
 }
 
 class _StockNewsPageState extends State<StockNewsPage> {
-  List<Map<String, String>> _newsArticles = [];
+  List<Map<String, dynamic>> _newsArticles = []; // Updated type
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -24,25 +24,23 @@ class _StockNewsPageState extends State<StockNewsPage> {
   }
 
   Future<void> _fetchStockNews() async {
-    const String apiUrl = 'https://www.moneycontrol.com/rss/MCtopnews.xml'; // RSS feed URL
+    const String apiUrl =
+        'http://192.168.151.105:5000/scrape_news'; // Use this IP
+    // Flask API URL
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
 
       if (response.statusCode == 200) {
-        // Parse the XML response
-        final document = XmlDocument.parse(response.body);
-        final items = document.findAllElements('item'); // Find all <item> elements
+        // Parse the JSON response
+        final List<dynamic> fetchedData = json.decode(response.body);
 
-        // Extract title and link for each item
-        final fetchedNews = items.map((item) {
-          final title = item.findElements('title').first.text;
-          final link = item.findElements('link').first.text;
-          return {'title': title, 'link': link};
-        }).toList();
+        // Cast the fetched data to List<Map<String, dynamic>>
+        final List<Map<String, dynamic>> newsList =
+            List<Map<String, dynamic>>.from(fetchedData);
 
         setState(() {
-          _newsArticles = fetchedNews;
+          _newsArticles = newsList; // Assign the casted list to _newsArticles
           _isLoading = false;
         });
       } else {
@@ -170,4 +168,3 @@ class _StockNewsPageState extends State<StockNewsPage> {
     );
   }
 }
-
