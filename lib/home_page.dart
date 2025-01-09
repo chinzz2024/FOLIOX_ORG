@@ -25,7 +25,7 @@ class _StockNewsPageState extends State<StockNewsPage> {
 
   Future<void> _fetchStockNews() async {
     const String apiUrl =
-        'http://192.168.151.105:5000/scrape_news'; // Use this IP
+        'http://192.168.151.137:5000/scrape_news'; // Use this IP
     // Flask API URL
 
     try {
@@ -142,7 +142,7 @@ class _StockNewsPageState extends State<StockNewsPage> {
         currentIndex: 0, // You can dynamically set this index
         onTap: (int index) {
           if (index == 1) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => PlannerPage()),
             );
