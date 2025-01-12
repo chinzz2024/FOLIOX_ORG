@@ -17,7 +17,6 @@ class _IncomePageState extends State<IncomePage> {
       TextEditingController();
   final TextEditingController transportAllowanceController =
       TextEditingController();
-  final TextEditingController otherIncomeController = TextEditingController();
 
   final TextEditingController providentFundController = TextEditingController();
   final TextEditingController incomeTaxController = TextEditingController();
@@ -31,16 +30,32 @@ class _IncomePageState extends State<IncomePage> {
   final TextEditingController transportationController =
       TextEditingController();
   final TextEditingController educationController = TextEditingController();
-  final TextEditingController otherExpensesController = TextEditingController();
+
+  bool showOtherIncomeFields = false;
+  bool showOtherDeductionFields = false;
+  bool showOtherExpenditureFields = false;
+
+  final List<TextEditingController> otherIncomeControllers = List.generate(
+    5,
+    (_) => TextEditingController(),
+  );
+
+  final List<TextEditingController> otherDeductionControllers = List.generate(
+    5,
+    (_) => TextEditingController(),
+  );
+
+  final List<TextEditingController> otherExpenditureControllers = List.generate(
+    5,
+    (_) => TextEditingController(),
+  );
 
   @override
   void dispose() {
-    // Dispose controllers
     baseSalaryController.dispose();
     dearnessAllowanceController.dispose();
     houseRentAllowanceController.dispose();
     transportAllowanceController.dispose();
-    otherIncomeController.dispose();
 
     providentFundController.dispose();
     incomeTaxController.dispose();
@@ -52,7 +67,16 @@ class _IncomePageState extends State<IncomePage> {
     utilitiesController.dispose();
     transportationController.dispose();
     educationController.dispose();
-    otherExpensesController.dispose();
+
+    for (var controller in otherIncomeControllers) {
+      controller.dispose();
+    }
+    for (var controller in otherDeductionControllers) {
+      controller.dispose();
+    }
+    for (var controller in otherExpenditureControllers) {
+      controller.dispose();
+    }
 
     super.dispose();
   }
@@ -69,9 +93,9 @@ class _IncomePageState extends State<IncomePage> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => EmploymentOptionPage()),
-           );
+              context,
+              MaterialPageRoute(builder: (context) => EmploymentOptionPage()),
+            );
           },
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
@@ -95,7 +119,37 @@ class _IncomePageState extends State<IncomePage> {
                   'House Rent Allowance (HRA)', houseRentAllowanceController),
               _buildTextField(
                   'Transport Allowance', transportAllowanceController),
-              _buildTextField('Others (Income)', otherIncomeController),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    showOtherIncomeFields = !showOtherIncomeFields;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+                ),
+                child: Text(
+                  showOtherIncomeFields
+                      ? 'Hide Other Income Fields'
+                      : 'Add Other Income Fields',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              if (showOtherIncomeFields)
+                Column(
+                  children: [
+                    _buildTextField(
+                        'Medical Allowance', otherIncomeControllers[0]),
+                    _buildTextField(
+                        'Children\'s Education Allowance', otherIncomeControllers[1]),
+                    _buildTextField(
+                        'Festival Allowance', otherIncomeControllers[2]),
+                    _buildTextField(
+                        'Performance Linked Bonuses', otherIncomeControllers[3]),
+                    _buildTextField('Spouse Income', otherIncomeControllers[4]),
+                  ],
+                ),
               const SizedBox(height: 16.0),
               const Text(
                 'Deduction Details',
@@ -110,6 +164,38 @@ class _IncomePageState extends State<IncomePage> {
               _buildTextField('LIC/Other Insurances', licController),
               _buildTextField('Vehicle/Other Loans', vehicleLoanController),
               const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    showOtherDeductionFields = !showOtherDeductionFields;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+                ),
+                child: Text(
+                  showOtherDeductionFields
+                      ? 'Hide Other Deduction Fields'
+                      : 'Add Other Deduction Fields',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              if (showOtherDeductionFields)
+                Column(
+                  children: [
+                    _buildTextField(
+                        'Maintenance Fund', otherDeductionControllers[0]),
+                    _buildTextField(
+                        'Employees State Insurance', otherDeductionControllers[1]),
+                    _buildTextField(
+                        'National Pension System', otherDeductionControllers[2]),
+                    _buildTextField(
+                        'Training Expenses', otherDeductionControllers[3]),
+                    _buildTextField(
+                        'Professional Expenses', otherDeductionControllers[4]),
+                  ],
+                ),
+              const SizedBox(height: 16.0),
               const Text(
                 'Expenditure Details',
                 style: TextStyle(
@@ -117,75 +203,83 @@ class _IncomePageState extends State<IncomePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              _buildTextField('Housing Rent', housingRentController),
-              _buildTextField('Utilities', utilitiesController),
+              _buildTextField('Health And Wellness', housingRentController),
+              _buildTextField('Housing And Utilities', utilitiesController),
               _buildTextField('Transportation', transportationController),
               _buildTextField('Education', educationController),
-              _buildTextField('Others (Expenses)', otherExpensesController),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    showOtherExpenditureFields = !showOtherExpenditureFields;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+                ),
+                child: Text(
+                  showOtherExpenditureFields
+                      ? 'Hide Other Expenditure Fields'
+                      : 'Add Other Expenditure Fields',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              if (showOtherExpenditureFields)
+                Column(
+                  children: [
+                    _buildTextField('Food and Groceries',
+                        otherExpenditureControllers[0]),
+                    _buildTextField('Personal And Miscellaneous',
+                        otherExpenditureControllers[1]),
+                    _buildTextField(
+                        'Emergency Fund',
+                        otherExpenditureControllers[2]),
+                    _buildTextField('Entertainment Expenses',
+                        otherExpenditureControllers[3]),
+                  ],
+                ),
               const SizedBox(height: 24.0),
               Center(
                 child: ElevatedButton(
                   onPressed: () {
+                    // Collect all input values from controllers
+                    final basicSalary = double.tryParse(baseSalaryController.text) ?? 0;
+                    final dearnessAllowance = double.tryParse(dearnessAllowanceController.text) ?? 0;
+                    final houseRentAllowance = double.tryParse(houseRentAllowanceController.text) ?? 0;
+                    final transportAllowance = double.tryParse(transportAllowanceController.text) ?? 0;
+                    final providentFund = double.tryParse(providentFundController.text) ?? 0;
+                    final incomeTax = double.tryParse(incomeTaxController.text) ?? 0;
+                    final professionalTax = double.tryParse(professionalTaxController.text) ?? 0;
+                    final lic = double.tryParse(licController.text) ?? 0;
+                    final vehicleLoan = double.tryParse(vehicleLoanController.text) ?? 0;
+                    final housingRent = double.tryParse(housingRentController.text) ?? 0;
+                    final utilities = double.tryParse(utilitiesController.text) ?? 0;
+                    final transportation = double.tryParse(transportationController.text) ?? 0;
+                    final education = double.tryParse(educationController.text) ?? 0;
+                    final otherIncome = otherIncomeControllers.map((e) => double.tryParse(e.text) ?? 0).toList();
+                    final otherDeductions = otherDeductionControllers.map((e) => double.tryParse(e.text) ?? 0).toList();
+                    final otherExpenditures = otherExpenditureControllers.map((e) => double.tryParse(e.text) ?? 0).toList();
+
+                    // Navigate to CalculationPage
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CalculationPage(
-                          basicSalary: double.parse(
-                              baseSalaryController.text.isEmpty
-                                  ? '0'
-                                  : baseSalaryController.text),
-                          dearnessAllowance: double.parse(
-                              dearnessAllowanceController.text.isEmpty
-                                  ? '0'
-                                  : dearnessAllowanceController.text),
-                          houseRentAllowance: double.parse(
-                              houseRentAllowanceController.text.isEmpty
-                                  ? '0'
-                                  : houseRentAllowanceController.text),
-                          transportAllowance: double.parse(
-                              transportAllowanceController.text.isEmpty
-                                  ? '0'
-                                  : transportAllowanceController.text),
-                          otherIncome: double.parse(otherIncomeController.text.isEmpty
-                              ? '0'
-                              : otherIncomeController.text),
-                          providentFund: double.parse(
-                              providentFundController.text.isEmpty
-                                  ? '0'
-                                  : providentFundController.text),
-                          incomeTax: double.parse(
-                              incomeTaxController.text.isEmpty
-                                  ? '0'
-                                  : incomeTaxController.text),
-                          professionalTax: double.parse(
-                              professionalTaxController.text.isEmpty
-                                  ? '0'
-                                  : professionalTaxController.text),
-                          lic: double.parse(
-                              licController.text.isEmpty ? '0' : licController.text),
-                          vehicleLoan: double.parse(vehicleLoanController.text.isEmpty
-                              ? '0'
-                              : vehicleLoanController.text),
-                          housingRent: double.parse(
-                              housingRentController.text.isEmpty
-                                  ? '0'
-                                  : housingRentController.text),
-                          utilities: double.parse(
-                              utilitiesController.text.isEmpty
-                                  ? '0'
-                                  : utilitiesController.text),
-                          transportation: double.parse(
-                              transportationController.text.isEmpty
-                                  ? '0'
-                                  : transportationController.text),
-                          education: double.parse(
-                              educationController.text.isEmpty
-                                  ? '0'
-                                  : educationController.text),
-                          otherExpenses: double.parse(otherExpensesController
-                              .text.isEmpty
-                              ? '0'
-                              : otherExpensesController.text),
+                          baseSalary: basicSalary,
+                          dearnessAllowance: dearnessAllowance,
+                          houseRentAllowance: houseRentAllowance,
+                          transportAllowance: transportAllowance,
+                          otherIncome: otherIncome,
+                          providentFund: providentFund,
+                          incomeTax: incomeTax,
+                          professionalTax: professionalTax,
+                          lic: lic,
+                          vehicleLoan: vehicleLoan,
+                          housingRent: housingRent,
+                          utilities: utilities,
+                          transportation: transportation,
+                          education: education,
+                          otherExpenditures: otherExpenditures,
                         ),
                       ),
                     );
