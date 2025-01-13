@@ -21,7 +21,7 @@ class CalculationPage extends StatelessWidget {
   final List<double> otherExpenditures;
 
   const CalculationPage({
-    Key? key,
+    super.key,
     required this.baseSalary,
     required this.dearnessAllowance,
     required this.houseRentAllowance,
@@ -37,7 +37,7 @@ class CalculationPage extends StatelessWidget {
     required this.transportation,
     required this.education,
     required this.otherExpenditures,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

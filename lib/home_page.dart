@@ -26,7 +26,7 @@ class _StockNewsPageState extends State<StockNewsPage> {
 
   Future<void> _fetchStockNews() async {
     const String apiUrl =
-        'http://192.168.151.137:5000/scrape_news'; // Use this IP
+        'http://192.168.77.137:5000/scrape_news'; // Use this IP
     // Flask API URL
 
     try {
