@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 class CalculationPage extends StatelessWidget {
   final double baseSalary;
   final double dearnessAllowance;
@@ -85,7 +84,7 @@ class CalculationPage extends StatelessWidget {
             children: [
               const Center(
                 child: Text(
-                  'Your Savings Summary',
+                  'Your calculated savings',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -93,13 +92,9 @@ class CalculationPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              buildSummaryRow('Total Income:', totalIncome),
-              buildSummaryRow('Total Deductions:', totalDeductions),
-              buildSummaryRow('Total Expenditures:', totalExpenses),
-              const SizedBox(height: 20),
               Center(
                 child: Text(
-                  'Savings: ₹${savings.toStringAsFixed(2)}',
+                  '₹${savings.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -108,7 +103,7 @@ class CalculationPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              buildInvestmentCalculator(context),
+              buildGoalSelection(context),
             ],
           ),
         ),
@@ -116,102 +111,81 @@ class CalculationPage extends StatelessWidget {
     );
   }
 
-  Widget buildSummaryRow(String label, double value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+ Widget buildGoalSelection(BuildContext context) {
+  return Column(
+    children: [
+      const Text(
+        'Choose your goal & invest for it!',
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: 20),
+      GridView.count(
+        shrinkWrap: true,
+        crossAxisCount: 2, // Number of columns
+        crossAxisSpacing: 12, // Space between columns
+        mainAxisSpacing: 12, // Space between rows
+        childAspectRatio: 0.8, // Adjust aspect ratio of each item
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 18),
-          ),
-          Text(
-            '₹${value.toStringAsFixed(2)}',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          buildGoalCard('Retire early', 'assets/retire.png'),
+          buildGoalCard('Emergency fund', 'assets/emergency.png'),
+          buildGoalCard('Buy dream home', 'assets/home.png'),
+          buildGoalCard('Marriage', 'assets/marriage.png'),
         ],
       ),
-    );
-  }
-
-  Widget buildInvestmentCalculator(BuildContext context) {
-    final TextEditingController amountController = TextEditingController();
-    final TextEditingController interestController = TextEditingController();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Investment Calculator',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: amountController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Investment Amount',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-            ),
+      const SizedBox(height: 30),
+      Center(
+        child: ElevatedButton(
+          onPressed: () {
+            // Add functionality for creating a new goal
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Create new goal pressed')),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+            backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+          ),
+          child: const Text(
+            'Create new goal',
+            style: TextStyle(fontSize: 18, color: Colors.white),
           ),
         ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: interestController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Interest Rate (%)',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              final double? amount =
-                  double.tryParse(amountController.text.trim());
-              final double? interest =
-                  double.tryParse(interestController.text.trim());
+      ),
+    ],
+  );
+}
 
-              if (amount != null && interest != null) {
-                final double finalAmount =
-                    amount + (amount * (interest / 100));
-
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Investment Result'),
-                    content: Text(
-                      'Amount After Interest: ₹${finalAmount.toStringAsFixed(2)}',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter valid numbers')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+Widget buildGoalCard(String title, String iconPath) {
+  return SizedBox(
+    width: 40, // Fixed width for the card
+    height: 40, // Fixed height for the card
+    child: Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(40),
+      ),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              iconPath,
+              width: 60, // Adjust the image width
+              height: 60, // Adjust the image height
+              fit: BoxFit.contain, // Ensure the image fits without distortion
             ),
-            child: const Text(
-              'Calculate',
-              style: TextStyle(color: Colors.white),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
-          ),
+          ],
         ),
-      ],
-    );
-  }
+      ),
+    ),
+  );
+}
 }
