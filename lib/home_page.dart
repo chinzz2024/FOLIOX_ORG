@@ -10,9 +10,8 @@ class Homepage extends StatefulWidget {
   State<Homepage> createState() => _HomepageState();
 }
 
-<<<<<<< HEAD
+
 class _HomepageState extends State<Homepage> {
-=======
 class _StockNewsPageState extends State<StockNewsPage> {
   List<Map<String, dynamic>> _newsArticles = []; // Updated type
   bool _isLoading = true;
