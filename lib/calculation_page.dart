@@ -40,13 +40,11 @@ class CalculationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate totals
     final double totalOtherIncome =
         otherIncome.fold(0.0, (sum, item) => sum + item);
     final double totalOtherExpenditures =
         otherExpenditures.fold(0.0, (sum, item) => sum + item);
 
-    // Calculate savings
     final double totalIncome = baseSalary +
         dearnessAllowance +
         houseRentAllowance +
@@ -104,6 +102,8 @@ class CalculationPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               buildGoalSelection(context),
+              const SizedBox(height: 20),
+              const InstantInvestingWidget(),
             ],
           ),
         ),
@@ -111,58 +111,63 @@ class CalculationPage extends StatelessWidget {
     );
   }
 
- Widget buildGoalSelection(BuildContext context) {
-  return Column(
-    children: [
-      const Text(
-        'Choose your goal & invest for it!',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: 20),
-      GridView.count(
-        shrinkWrap: true,
-        crossAxisCount: 2, // Number of columns
-        crossAxisSpacing: 12, // Space between columns
-        mainAxisSpacing: 12, // Space between rows
-        childAspectRatio: 0.8, // Adjust aspect ratio of each item
+  Widget buildGoalSelection(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
         children: [
-          buildGoalCard('Retire early', 'assets/retire.png'),
-          buildGoalCard('Emergency fund', 'assets/emergency.png'),
-          buildGoalCard('Buy dream home', 'assets/home.png'),
-          buildGoalCard('Marriage', 'assets/marriage.png'),
+          const Text(
+            'Choose your goal & invest for it!',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: GridView.count(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.75,
+              children: [
+                buildGoalCard('Retire early', 'assets/retire.png'),
+                buildGoalCard('Emergency fund', 'assets/emergency.png'),
+                buildGoalCard('Dream home', 'assets/home.png'),
+                buildGoalCard('Dream car', 'assets/car.png'),
+                buildGoalCard('Marriage', 'assets/marriage.png'),
+                buildGoalCard('Business', 'assets/business.png'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 1),
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Create new goal pressed')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+              ),
+              child: const Text(
+                'Create new goal',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          ),
         ],
       ),
-      const SizedBox(height: 30),
-      Center(
-        child: ElevatedButton(
-          onPressed: () {
-            // Add functionality for creating a new goal
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Create new goal pressed')),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-            backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-          ),
-          child: const Text(
-            'Create new goal',
-            style: TextStyle(fontSize: 18, color: Colors.white),
-          ),
-        ),
-      ),
-    ],
-  );
-}
+    );
+  }
 
-Widget buildGoalCard(String title, String iconPath) {
-  return SizedBox(
-    width: 40, // Fixed width for the card
-    height: 40, // Fixed height for the card
-    child: Card(
+  Widget buildGoalCard(String title, String iconPath) {
+    return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(40),
+        borderRadius: BorderRadius.circular(16),
       ),
       elevation: 4,
       child: Padding(
@@ -172,11 +177,11 @@ Widget buildGoalCard(String title, String iconPath) {
           children: [
             Image.asset(
               iconPath,
-              width: 60, // Adjust the image width
-              height: 60, // Adjust the image height
-              fit: BoxFit.contain, // Ensure the image fits without distortion
+              width: 80,
+              height: 80,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               title,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
@@ -185,7 +190,73 @@ Widget buildGoalCard(String title, String iconPath) {
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
+
+class InstantInvestingWidget extends StatelessWidget {
+  const InstantInvestingWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.teal,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          // Left Side: Text and Button
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Instant investing',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Begin your MF investment journey today',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Get started button pressed')),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF6200EA),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text('Get started'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Right Side: Image
+          Image.asset(
+            'assets/invest.png',
+            width: 150,
+            height: 150,
+            fit: BoxFit.cover,
+          ),
+        ],
+      ),
+    );
+  }
 }
