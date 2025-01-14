@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 
 class StockNewsPage extends StatefulWidget {
   const StockNewsPage({super.key});
@@ -11,6 +12,8 @@ class StockNewsPage extends StatefulWidget {
 
 class _StockNewsPageState extends State<StockNewsPage> {
   List<dynamic> stockNews = [];
+  bool isLoading = true;
+  String errorMessage = '';
 
   @override
   void initState() {
@@ -19,15 +22,36 @@ class _StockNewsPageState extends State<StockNewsPage> {
   }
 
   Future<void> fetchStockNews() async {
-    final response =
-        await http.get(Uri.parse('http://127.0.0.1:5000/stock-news'));
-
-    if (response.statusCode == 200) {
+    const url = 'http://127.0.0.1:5000/stock-news'; // Backend API URL
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          stockNews = json.decode(response.body);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load stock news. Please try again later.';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        stockNews = json.decode(response.body);
+        errorMessage = 'An error occurred: $e';
+        isLoading = false;
       });
+    }
+  }
+
+  Future<void> _openUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      throw Exception('Failed to load stock news');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the link')),
+      );
     }
   }
 
@@ -35,23 +59,34 @@ class _StockNewsPageState extends State<StockNewsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock News'),
+        title: const Text('Stock News', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
-      body: stockNews.isEmpty
+      body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: stockNews.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(stockNews[index]['title']),
-                  subtitle: Text(stockNews[index]['link']),
-                  onTap: () {
-                    // Handle onTap if you want to open the link
+          : errorMessage.isNotEmpty
+              ? Center(
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: stockNews.length,
+                  itemBuilder: (context, index) {
+                    final news = stockNews[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      child: ListTile(
+                        title: Text(news['title'] ?? 'No Title'),
+                        subtitle: Text(news['link'] ?? 'No Link'),
+                        onTap: () => _openUrl(news['link'] ?? ''),
+                      ),
+                    );
                   },
-                );
-              },
-            ),
+                ),
     );
   }
 }
