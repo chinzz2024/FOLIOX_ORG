@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       // If sign-in is successful, navigate to HomePage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const Homepage()),
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
       // If an error occurs, display the error message

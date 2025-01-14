@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'option.dart';
 import 'home_page.dart';
 
 class PlannerPage extends StatefulWidget {
@@ -25,7 +24,7 @@ class _PlannerPageState extends State<PlannerPage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const Homepage()),
+              MaterialPageRoute(builder: (context) => const HomePage()),
             );
           },
         ),
@@ -34,70 +33,61 @@ class _PlannerPageState extends State<PlannerPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Container(
-          // Center the container in the available space
-          child: Container(
-            height: 150,
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  blurRadius: 6.0,
-                  spreadRadius: 2.0,
+          height: 150,
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                blurRadius: 6.0,
+                spreadRadius: 2.0,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const Text(
+                'Invest every month and grow your wealth with SIP',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const Text(
-                  'Invest every month and grow your wealth with SIP',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+              ),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  // Add your logic for finding the plan
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0, vertical: 12.0),
                 ),
-                const SizedBox(height: 16.0), // Spacing between text and button
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EmploymentOptionPage(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0, vertical: 12.0),
-                  ),
-                  child: const Text('Find Your Plan'),
-                ),
-              ],
-            ),
+                child: const Text('Find Your Plan'),
+              ),
+            ],
           ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        // You can dynamically set this index
+        currentIndex: 1, // Highlight Planner
         onTap: (int index) {
           if (index == 0) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const Homepage()),
+              MaterialPageRoute(builder: (context) => const HomePage()),
             );
           }
-        }, // Highlight Planner
-        items: const <BottomNavigationBarItem>[
+        },
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.trending_up),
             label: 'Stock',
