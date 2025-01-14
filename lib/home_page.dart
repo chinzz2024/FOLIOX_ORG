@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'planner_page.dart';
-import 'stock_news.dart';
+import 'stock_news.dart'; // Make sure you import your StockNewsPage
+import 'stock_page.dart'; // Import the new StockPage
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -51,6 +52,28 @@ class _HomepageState extends State<Homepage> {
               ),
               child: const Text(
                 'View Stock News',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Pass the 'symbol' parameter when navigating to StockPage
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        StockPage(symbol: 'AAPL'), // Example symbol
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+              ),
+              child: const Text(
+                'Stocks',
                 style: TextStyle(fontSize: 18),
               ),
             ),
