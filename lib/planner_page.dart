@@ -24,7 +24,7 @@ class _PlannerPageState extends State<PlannerPage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
+              MaterialPageRoute(builder: (context) => const Homepage()),
             );
           },
         ),
@@ -83,7 +83,7 @@ class _PlannerPageState extends State<PlannerPage> {
           if (index == 0) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
+              MaterialPageRoute(builder: (context) => const Homepage()),
             );
           }
         },

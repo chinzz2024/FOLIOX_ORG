@@ -62,8 +62,7 @@ class _HomepageState extends State<Homepage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        StockPage(symbol: 'AAPL'), // Example symbol
+                    builder: (context) => StockDataPage(), // Example symbol
                   ),
                 );
               },
