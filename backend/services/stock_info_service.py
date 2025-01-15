@@ -1,62 +1,55 @@
 import http.client
-import pyotp
 import json
-from logzero import logger
+import logging
+from datetime import datetime
 from SmartApi import SmartConnect
 
-api_key = 'VJ5iztNm'
-username = 'AAAF841327'
-pwd = '2504'
+# Logger setup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Function to generate TOTP
-def generate_totp(token):
-    """Generates a Time-based One-Time Password (TOTP) from the provided token."""
-    totp = pyotp.TOTP(token).now()
-    logger.info(f"Generated TOTP: {totp}")
-    return totp
+# Replace these with your actual credentials
+api_key = "VJ5iztNm"
+username = "AAAF841327"
+pwd = "2504"
+totp_token = "VKEN7FGDBEOFPJDNUYMU5GQ3DY"
 
-def login(totp_token):
-    """Logs in to the Smart API using username, password, and TOTP."""
+def generate_totp(secret):
+    """Generate a TOTP token using the secret."""
+    from pyotp import TOTP
+    totp = TOTP(secret)
+    print(totp)
+    return totp.now()
+
+def login_and_get_token():
+    """Logs in and returns auth token."""
     try:
-        totp = generate_totp(totp_token)
         smartApi = SmartConnect(api_key)
-
-        # Generate session using username, password, and TOTP
+        totp = generate_totp(totp_token)
         data = smartApi.generateSession(username, pwd, totp)
 
-        if data['status'] == False:
+        if not data['status']:
             raise Exception(f"Login failed: {data}")
-        
-        authToken = data['data']['jwtToken']
-        refreshToken = data['data']['refreshToken']
 
-        logger.info("Login successful.")
-        return authToken, refreshToken
-
+        logger.info("Login successful")
+        return data['data']['jwtToken']
     except Exception as e:
         logger.error(f"Login failed: {e}")
         raise e
 
-def fetch_historical_data(authToken, symboltoken, fromdate, todate):
-    """Fetches historical data for a given symbol token from the API."""
+def fetch_historical_data(symboltoken, fromdate, todate):
+    """Fetches historical data after automatic login."""
     try:
-        # Set the parameters for the API request
+        authToken = login_and_get_token()  # Automatically log in and get token
         historicParam = {
             "exchange": "NSE",
             "symboltoken": symboltoken,
             "interval": "ONE_MINUTE",
-            "fromdate": fromdate,  # example: "2021-02-08 09:00"
-            "todate": todate,      # example: "2021-02-08 09:16"
+            "fromdate": fromdate,
+            "todate": todate,
         }
-
-        # Log the parameters being sent to the API
-        logger.info(f"Historic API request parameters: {historicParam}")
-
-        # Make the API call using http.client with the authToken
         conn = http.client.HTTPSConnection("apiconnect.angelone.in")
         payload = json.dumps(historicParam)
-
-        # Set the headers for the request
         headers = {
             'Authorization': f' {authToken}',  # Pass the authToken here
             'X-PrivateKey': 'VJ5iztNm',                # Replace with your actual API Key
@@ -68,45 +61,16 @@ def fetch_historical_data(authToken, symboltoken, fromdate, todate):
             'X-UserType': 'USER',
             'Content-Type': 'application/json'
         }
-
-        # Log the headers for debugging
-        logger.info(f"Request Headers: {headers}")
-
-        # Send the API request
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
-
         res = conn.getresponse()
-        data = res.read()
+        data = res.read().decode()
 
-        # Log the response for debugging
-        if data:
-            logger.info(f"API response: {data.decode('utf-8')}")
-        else:
-            logger.warning("Empty response received from API.")
+        # Print and log the response received from the backend
+        print("Raw Data Fetched:", data)
+        logger.info(f"Raw Data Fetched: {data}")
 
-        return data.decode("utf-8")
-
+        logger.info("Historical data fetched successfully")
+        return json.loads(data)
     except Exception as e:
-        logger.exception(f"Historic API failed: {e}")
+        logger.exception(f"Error fetching historical data: {e}")
         return None
-
-# Example usage
-if __name__ == "__main__":
-    totp_token = 'VKEN7FGDBEOFPJDNUYMU5GQ3DY'  # Replace with your actual TOTP secret
-    try:
-        # Log in and get the auth token
-        authToken, refreshToken = login(totp_token)
-
-        # Fetch historical data
-        symboltoken = "3045"  # Example symbol token
-        fromdate = "2021-02-08 09:00"
-        todate = "2021-02-08 09:16"
-        data = fetch_historical_data(authToken, symboltoken, fromdate, todate)
-
-        if data:
-            logger.info(f"Historical Data: {data}")
-        else:
-            logger.warning("Failed to fetch historical data.")
-    
-    except Exception as e:
-        logger.error(f"Error: {e}")
