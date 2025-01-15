@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import 'option.dart';
+import 'profile_page.dart';
 
 class PlannerPage extends StatefulWidget {
   const PlannerPage({super.key});
@@ -60,7 +62,11 @@ class _PlannerPageState extends State<PlannerPage> {
               const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: () {
-                  // Add your logic for finding the plan
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const EmploymentOptionPage()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -84,6 +90,12 @@ class _PlannerPageState extends State<PlannerPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const Homepage()),
+            );
+          }
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
             );
           }
         },
