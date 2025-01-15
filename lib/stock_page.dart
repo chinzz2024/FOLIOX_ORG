@@ -10,72 +10,42 @@ class StockDataPage extends StatefulWidget {
 }
 
 class _StockDataPageState extends State<StockDataPage> {
-  String authToken = ''; // Store authToken after login
   String _response = '';
-  TextEditingController _totpController = TextEditingController();
-  List<Map<String, dynamic>> _historicalData = []; // To store historical data
-
-  // Function to login
-  Future<void> login(String totpToken) async {
-    final url = Uri.parse('http://127.0.0.1:5000/login');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'totp_token': totpToken}),
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        authToken = data['authToken'];
-      });
-      print('Login Successful');
-    } else {
-      print('Login Failed');
-    }
-  }
+  List<CandlestickData> _candlestickData = [];
 
   // Function to fetch historical data
   Future<void> fetchHistoricalData() async {
-    if (authToken.isEmpty) {
-      setState(() {
-        _response = 'Please log in first.';
-      });
-      return;
-    }
+    final String fromDate = '2000-01-01 00:00';
+    final String toDate = '2025-01-15 16:00';
 
     final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
-        'authToken': authToken,
-        'symboltoken': '3045', // Example symbol token
-        'fromdate': '2021-02-08 09:00',
-        'todate': '2021-02-08 09:16',
+        'symboltoken': '3045',
+        'fromdate': fromDate,
+        'todate': toDate,
       }),
     );
 
     if (response.statusCode == 200) {
       try {
-        final data = json.decode(response.body); // Decode the response body
+        final data = json.decode(response.body);
         if (data['status'] == true) {
-          // Ensure that the data is a list and assign it correctly
           setState(() {
-            _historicalData = List<Map<String, dynamic>>.from(
-              data['data'].map((item) {
-                return {
-                  'timestamp': item[0],
-                  'open': item[1],
-                  'high': item[2],
-                  'low': item[3],
-                  'close': item[4],
-                  'volume': item[5],
-                };
-              }),
+            _response = 'Data fetched successfully';
+            _candlestickData = List<CandlestickData>.from(
+              data['data']['data'].map((item) => CandlestickData(
+                    DateTime.parse(item[0]),
+                    item[1].toDouble(),
+                    item[2].toDouble(),
+                    item[3].toDouble(),
+                    item[4].toDouble(),
+                    item[5].toDouble(),
+                  )),
             );
           });
-          print('Data fetched successfully');
         } else {
           setState(() {
             _response = 'Error: ${data['message']}';
@@ -85,14 +55,18 @@ class _StockDataPageState extends State<StockDataPage> {
         setState(() {
           _response = 'Error decoding response: $e';
         });
-        print('Failed to decode response: $e');
       }
     } else {
       setState(() {
         _response = 'Error: ${response.body}';
       });
-      print('Failed to fetch data');
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchHistoricalData();
   }
 
   @override
@@ -102,52 +76,126 @@ class _StockDataPageState extends State<StockDataPage> {
         title: const Text('Stock Data'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _totpController,
-              decoration: const InputDecoration(
-                labelText: 'Enter TOTP Token',
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await login(_totpController.text);
-              },
-              child: const Text('Login'),
-            ),
-            ElevatedButton(
-              onPressed: fetchHistoricalData,
-              child: const Text('Fetch Historical Data'),
-            ),
-            const SizedBox(height: 20),
-            if (_response.isNotEmpty) Text(_response),
-            const SizedBox(height: 20),
-            if (_historicalData.isNotEmpty)
-              DataTable(
-                columns: const [
-                  DataColumn(label: Text('Timestamp')),
-                  DataColumn(label: Text('Open')),
-                  DataColumn(label: Text('High')),
-                  DataColumn(label: Text('Low')),
-                  DataColumn(label: Text('Close')),
-                  DataColumn(label: Text('Volume')),
-                ],
-                rows: _historicalData.map((data) {
-                  return DataRow(cells: [
-                    DataCell(Text(data['timestamp'])),
-                    DataCell(Text(data['open'].toString())),
-                    DataCell(Text(data['high'].toString())),
-                    DataCell(Text(data['low'].toString())),
-                    DataCell(Text(data['close'].toString())),
-                    DataCell(Text(data['volume'].toString())),
-                  ]);
-                }).toList(),
-              ),
-          ],
-        ),
+        child: _candlestickData.isNotEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CustomPaint(
+                  size: Size(double.infinity, 400),
+                  painter: CandlestickChartPainter(_candlestickData),
+                ),
+              )
+            : _response.isNotEmpty
+                ? SingleChildScrollView(
+                    child: Text(
+                      _response,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  )
+                : const CircularProgressIndicator(),
       ),
     );
+  }
+}
+
+// Data model for candlestick
+class CandlestickData {
+  final DateTime date;
+  final double open;
+  final double high;
+  final double low;
+  final double close;
+  final double volume;
+
+  CandlestickData(
+    this.date,
+    this.open,
+    this.high,
+    this.low,
+    this.close,
+    this.volume,
+  );
+}
+
+// Custom painter for candlestick chart
+class CandlestickChartPainter extends CustomPainter {
+  final List<CandlestickData> data;
+
+  CandlestickChartPainter(this.data);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    final double candleWidth = size.width / data.length;
+    final double chartHeight = size.height;
+
+    final double minPrice =
+        data.map((d) => d.low).reduce((a, b) => a < b ? a : b);
+    final double maxPrice =
+        data.map((d) => d.high).reduce((a, b) => a > b ? a : b);
+    final double priceRange = maxPrice - minPrice;
+
+    // Draw grid lines
+    final gridPaint = Paint()
+      ..color = Colors.grey.withOpacity(0.3)
+      ..style = PaintingStyle.stroke;
+    for (int i = 0; i <= 5; i++) {
+      final y = i * chartHeight / 5;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    for (int i = 0; i < data.length; i++) {
+      final candlestick = data[i];
+
+      final double openY = chartHeight -
+          ((candlestick.open - minPrice) / priceRange * chartHeight);
+      final double closeY = chartHeight -
+          ((candlestick.close - minPrice) / priceRange * chartHeight);
+      final double highY = chartHeight -
+          ((candlestick.high - minPrice) / priceRange * chartHeight);
+      final double lowY = chartHeight -
+          ((candlestick.low - minPrice) / priceRange * chartHeight);
+
+      final bool isIncrease = candlestick.close >= candlestick.open;
+      paint.color = isIncrease ? Colors.green : Colors.red;
+
+      canvas.drawLine(
+        Offset(i * candleWidth + candleWidth / 2, highY),
+        Offset(i * candleWidth + candleWidth / 2, lowY),
+        paint..strokeWidth = 2,
+      );
+
+      canvas.drawRect(
+        Rect.fromLTRB(
+          i * candleWidth + candleWidth * 0.2,
+          openY,
+          (i + 1) * candleWidth - candleWidth * 0.2,
+          closeY,
+        ),
+        paint,
+      );
+    }
+
+    // Draw price labels
+    final textPainter = TextPainter(
+      textAlign: TextAlign.right,
+      textDirection: TextDirection.ltr,
+    );
+    for (int i = 0; i <= 5; i++) {
+      final price = minPrice + (priceRange / 5) * i;
+      textPainter.text = TextSpan(
+        text: price.toStringAsFixed(2),
+        style: const TextStyle(color: Colors.black, fontSize: 12),
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(0, chartHeight - (i * chartHeight / 5)));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }
