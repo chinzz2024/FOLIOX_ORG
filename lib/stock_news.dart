@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'home_page.dart';
 
 class StockNewsPage extends StatefulWidget {
   const StockNewsPage({super.key});
@@ -60,6 +61,17 @@ class _StockNewsPageState extends State<StockNewsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stock News', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // Navigate back to Stock Page (Homepage)
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const Homepage()),
+              (route) => false, // Clear all previous routes
+            );
+          },
+        ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: isLoading

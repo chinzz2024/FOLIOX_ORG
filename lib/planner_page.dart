@@ -11,7 +11,23 @@ class PlannerPage extends StatefulWidget {
 }
 
 class _PlannerPageState extends State<PlannerPage> {
-  final TextEditingController _controller = TextEditingController();
+  int _currentIndex = 1;
+
+  void _onBottomNavTapped(int index) {
+    if (index == 0) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const Homepage()),
+        (route) => false, // Clear all previous routes
+      );
+    } else if (index == 2) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+        (route) => false, // Clear all previous routes
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,27 +103,12 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1, // Highlight Planner
-        onTap: (int index) {
-          if (index == 0) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const Homepage()),
-              (route) => false, // Clear all previous routes
-            );
-          }
-          if (index == 2) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-              (route) => false, // Clear all previous routes
-            );
-          }
-        },
+        currentIndex: _currentIndex,
+        onTap: _onBottomNavTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.trending_up),
-            label: 'Stock',
+            label: 'Stocks',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.savings),
@@ -118,7 +119,7 @@ class _PlannerPageState extends State<PlannerPage> {
             label: 'Profile',
           ),
         ],
-        selectedItemColor: Colors.black,
+        selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
       ),
     );

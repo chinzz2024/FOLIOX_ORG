@@ -189,12 +189,12 @@ class CalculationPage extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           children: [
-            Image.asset(imagePath, width: 80, height: 40),
-            const SizedBox(height: 10),
+            Image.asset(imagePath, width: 80, height: 90),
+            const SizedBox(height: 8),
             Text(title,
                 textAlign: TextAlign.center,
                 style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
