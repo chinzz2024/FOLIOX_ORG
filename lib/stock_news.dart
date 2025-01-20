@@ -31,11 +31,8 @@ class _StockNewsPageState extends State<StockNewsPage>
   }
 
   Future<void> fetchStockNews() async {
-<<<<<<< HEAD
     const url = 'http://127.0.0.1:5000/stock-news'; // Backend API URL
-=======
-    const url = 'http://192.168.86.137:5000/stock-news'; // Backend API URL
->>>>>>> 5792c0578c1fb412fa321792c1397729bc5017c2
+
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -35,10 +36,27 @@ class _SignUpPageState extends State<SignUpPage> {
 
       try {
         // Firebase Authentication
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        UserCredential userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
+
+        // Get the user's UID (unique identifier)
+        String uid = userCredential.user!.uid;
+
+        // Firestore - Create a new document in the 'users' collection
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'fullName': fullName,
+          'phoneNumber': phoneNumber,
+          'age': age,
+          'email': email,
+          'panNumber': panNumber,
+          'createdAt':
+              Timestamp.now(), // Optionally track when the account was created
+          'portfolioValue': 0, // You can initialize with a default value
+          'walletBalance': 0, // You can initialize with a default value
+        });
 
         // Log the details (or store them in a database)
         print(
