@@ -3,7 +3,11 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class StockDataPage extends StatefulWidget {
-  const StockDataPage({super.key});
+  final String symbolToken;
+  final String stockName;
+
+  const StockDataPage(
+      {required this.symbolToken, required this.stockName, super.key});
 
   @override
   State<StockDataPage> createState() => _StockDataPageState();
@@ -16,14 +20,14 @@ class _StockDataPageState extends State<StockDataPage> {
   // Function to fetch historical data
   Future<void> fetchHistoricalData() async {
     final String fromDate = '2000-01-01 00:00';
-    final String toDate = '2025-01-15 16:00';
+    final String toDate = '2025-01-17 15:30';
 
     final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
-        'symboltoken': '3045',
+        'symboltoken': widget.symbolToken,
         'fromdate': fromDate,
         'todate': toDate,
       }),
@@ -73,7 +77,7 @@ class _StockDataPageState extends State<StockDataPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Data'),
+        title: Text(widget.stockName),
       ),
       body: Center(
         child: _candlestickData.isNotEmpty

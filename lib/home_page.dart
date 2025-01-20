@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'planner_page.dart';
 import 'stock_news.dart'; // Make sure you import your StockNewsPage
-import 'stock_page.dart'; // Import the new StockPage
+
+import 'stock_list.dart'; // Import the new StockPage
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -62,7 +63,7 @@ class _HomepageState extends State<Homepage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => StockDataPage(), // Example symbol
+                    builder: (context) => StockListPage(), // Example symbol
                   ),
                 );
               },
