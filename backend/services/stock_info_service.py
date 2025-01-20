@@ -44,7 +44,7 @@ def fetch_historical_data(symboltoken, fromdate, todate):
         historicParam = {
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "ONE_MINUTE",
+            "interval": "FIFTEEN_MINUTE",
             "fromdate": fromdate,
             "todate": todate,
         }
