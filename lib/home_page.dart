@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'planner_page.dart';
 import 'stock_news.dart';
 import 'stock_list.dart';
@@ -39,54 +40,45 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Stocks Overview',
+          'Stocks',
           style: TextStyle(color: Colors.white),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            // Navigate back to Stock Page (Homepage)
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginPage()),
-              (route) => false, // Clear all previous routes
-            );
-          },
-        ),
+      
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-        actions: [],
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Hero Banner Section
+            // Hero Banner Section with Image Carousel
             Stack(
               children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage(
-                          'https://www.google.com/imgres?q=assets%2Fstock%20banner&imgurl=https%3A%2F%2Fen.pimg.jp%2F109%2F417%2F265%2F1%2F109417265.jpg&imgrefurl=https%3A%2F%2Fwww.pixtastock.com%2Fillustration%2F109417265&docid=HdpMgzR2M6VXiM&tbnid=sS9yKIVlyuKNgM&vet=12ahUKEwiWybKhgoWLAxXIdfUHHc0tOQYQM3oECG0QAA..i&w=450&h=313&hcb=2&itg=1&ved=2ahUKEwiWybKhgoWLAxXIdfUHHc0tOQYQM3oECG0QAA'),
-                      fit: BoxFit.cover,
-                    ),
+                CarouselSlider(
+                  options: CarouselOptions(
+                    height: 200,
+                    autoPlay: true,
+                    autoPlayInterval: Duration(seconds: 3),
+                    enlargeCenterPage: true,
+                    viewportFraction: 1.0,
                   ),
-                ),
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  color: Colors.black.withOpacity(0.4),
-                  child: const Center(
-                    child: Text(
-                      'Welcome to the Stock Dashboard',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  items: [
+                    'assets/car.jpg',
+                    'assets/grph.jpg',
+                    'assets/maram.jpg',
+                  ].map((url) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage(url),  // Use AssetImage instead of NetworkImage
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
                 ),
               ],
             ),
@@ -179,25 +171,6 @@ class _HomepageState extends State<Homepage> {
           const SizedBox(height: 5),
           Text(label, style: const TextStyle(fontSize: 14)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNewsCard({required String title, required String date}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListTile(
-        leading: const Icon(Icons.newspaper, color: Colors.teal, size: 30),
-        title: Text(title, style: const TextStyle(fontSize: 16)),
-        subtitle: Text(date),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening article: $title')),
-          );
-        },
       ),
     );
   }

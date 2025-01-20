@@ -22,6 +22,7 @@ dependencies:
   syncfusion_flutter_core: ^28.1.39 # Core library for Syncfusion widgets.
   cupertino_icons: ^1.0.8 # Default iOS icons.
   video_player: ^2.5.1
+  carousel_slider: ^5.0.0
 
 
 dev_dependencies:
@@ -41,3 +42,6 @@ flutter:
     - assets/car.png
     - assets/invest.png
     - assets/splash.mp4 # Video file for splash screen.
+    - assets/car.jpg 
+    - assets/grph.jpg 
+    - assets/maram.jpg 
