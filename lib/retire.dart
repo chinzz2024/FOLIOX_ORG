@@ -9,19 +9,67 @@ class RetireEarly extends StatefulWidget {
 
 class _RetireEarlyState extends State<RetireEarly> {
   final TextEditingController _ageController = TextEditingController();
-  String? _displayMessage; // Variable to store the message
+  String? _displayMessage;
+  List<String> _rules = [];
+
+  // Rules categorized by age ranges
+  final Map<String, List<String>> _ageBasedRules = {
+    '20-30': [
+      'Start saving early to leverage compound interest.',
+      'Build a solid emergency fund.',
+      'Invest in learning skills that increase income.',
+    ],
+    '31-40': [
+      'Increase contributions to retirement accounts.',
+      'Diversify your investments to reduce risk.',
+      'Plan for significant expenses like a home or children’s education.',
+    ],
+    '41-50': [
+      'Review your retirement goals and adjust savings if necessary.',
+      'Start focusing on debt reduction.',
+      'Consider long-term care insurance options.',
+    ],
+    '51+': [
+      'Maximize your retirement savings contributions.',
+      'Ensure you have a healthcare plan in place.',
+      'Start planning for required minimum distributions (RMDs).',
+    ],
+  };
 
   void _submit() {
-    final enteredAge = _ageController.text;
-    if (enteredAge.isNotEmpty) {
-      setState(() {
-        _displayMessage = 'Here are some plans for you';
-      });
-    } else {
+    final enteredAgeText = _ageController.text;
+    if (enteredAgeText.isEmpty) {
       setState(() {
         _displayMessage = 'Please enter a valid age.';
+        _rules = [];
       });
+      return;
     }
+
+    final enteredAge = int.tryParse(enteredAgeText);
+    if (enteredAge == null || enteredAge <= 0) {
+      setState(() {
+        _displayMessage = 'Please enter a valid age.';
+        _rules = [];
+      });
+      return;
+    }
+
+    String ageCategory;
+    if (enteredAge >= 20 && enteredAge <= 30) {
+      ageCategory = '20-30';
+    } else if (enteredAge >= 31 && enteredAge <= 40) {
+      ageCategory = '31-40';
+    } else if (enteredAge >= 41 && enteredAge <= 50) {
+      ageCategory = '41-50';
+    } else {
+      ageCategory = '51+';
+    }
+
+    setState(() {
+      _displayMessage = 'You want to retire at $enteredAge years.';
+      _rules = _ageBasedRules[ageCategory]!;
+    });
   }
 
   @override
@@ -50,13 +98,6 @@ class _RetireEarlyState extends State<RetireEarly> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '1. Save a significant portion of your income.\n'
-              '2. Invest in diversified assets.\n'
-              '3. Monitor your financial progress regularly.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 32),
             Row(
               children: [
                 const Text(
@@ -69,28 +110,20 @@ class _RetireEarlyState extends State<RetireEarly> {
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 50, // Adjusted width
-                  height: 40, // Adjusted height
+                  width: 50,
+                  height: 40,
                   child: TextField(
                     controller: _ageController,
                     decoration: InputDecoration(
-                      suffixText: 'y', // Adds 'y' at the end
+                      suffixText: 'y',
                       border: const OutlineInputBorder(),
                       hintText: 'Age',
                       contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10, // Adjusted vertical padding
-                        horizontal: 8, // Adjusted horizontal padding
-                      ),
-                      labelStyle: const TextStyle(
-                        fontSize: 15, // Smaller font size for label
-                      ),
-                      hintStyle: const TextStyle(
-                        fontSize: 13, // Font size for hint text
+                        vertical: 10,
+                        horizontal: 8,
                       ),
                     ),
-                    style: const TextStyle(
-                      fontSize: 15, // Font size for user input
-                    ),
+                    style: const TextStyle(fontSize: 15),
                     keyboardType: TextInputType.number,
                   ),
                 ),
@@ -108,21 +141,28 @@ class _RetireEarlyState extends State<RetireEarly> {
             ),
             const SizedBox(height: 24),
             if (_displayMessage != null)
-              Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.start, // Aligns the text to the right
-                children: [
-                  Text(
-                    _displayMessage!,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color.fromARGB(255, 0, 0, 0),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign:
-                        TextAlign.left, // Aligns the text within its widget
-                  ),
-                ],
+              Text(
+                _displayMessage!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (_rules.isNotEmpty)
+              const Text(
+                'Helpful Rules for Your Retirement:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            const SizedBox(height: 8),
+            for (String rule in _rules)
+              Text(
+                '- $rule',
+                style: const TextStyle(fontSize: 16),
               ),
           ],
         ),

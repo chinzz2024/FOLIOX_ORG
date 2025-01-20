@@ -1,35 +1,37 @@
 name: foliox
-description: "A new Flutter project." # Keep only one description key
-publish_to: 'none'
+description: "A new Flutter project." # Ensure the description is concise.
 
-version: 1.0.0+1
+publish_to: 'none' # Prevent publishing to pub.dev.
+
+version: 1.0.0+1 # Increment the version for each release.
 
 environment:
-  sdk: ^3.5.4
+  sdk: ">=3.5.4 <4.0.0" # Specify the Flutter SDK range.
 
 dependencies:
   flutter:
     sdk: flutter
-  firebase_auth: ^5.3.4
-  cupertino_icons: ^1.0.8
-  firebase_core: ^3.8.1
-  http: ^1.2.2
-  html: ^0.15.0
-  xml: ^6.1.0
-  url_launcher: ^6.1.5
-  cloud_firestore: ^5.5.1
-  syncfusion_flutter_charts: ^28.1.39
-  syncfusion_flutter_core: ^28.1.39
+  firebase_auth: ^5.3.4 # Firebase Authentication for user management.
+  firebase_core: ^3.8.1 # Core Firebase initialization.
+  cloud_firestore: ^5.5.1 # Firestore database integration.
+  http: ^1.2.2 # HTTP client for API calls.
+  html: ^0.15.0 # Parsing and manipulating HTML.
+  xml: ^6.1.0 # XML parsing support.
+  url_launcher: ^6.1.5 # Open URLs in a browser or external apps.
+  syncfusion_flutter_charts: ^28.1.39 # Charts and graphs for data visualization.
+  syncfusion_flutter_core: ^28.1.39 # Core library for Syncfusion widgets.
+  cupertino_icons: ^1.0.8 # Default iOS icons.
+  video_player: ^2.5.1
+
 
 dev_dependencies:
   flutter_test:
-    sdk: flutter
-  flutter_lints: ^5.0.0
+    sdk: flutter # For testing Flutter apps.
+  flutter_lints: ^5.0.0 # For Flutter linting rules and analysis.
 
 flutter:
-  uses-material-design: true
+  uses-material-design: true # Use Material Design icons and components.
 
-  # Adding assets section
   assets:
     - assets/retire.png
     - assets/emergency.png
@@ -38,4 +40,4 @@ flutter:
     - assets/business.png
     - assets/car.png
     - assets/invest.png
-    
+    - assets/splash.mp4 # Video file for splash screen.

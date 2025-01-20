@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'stock_page.dart'; // Import the StockDataPage
+import 'home_page.dart';
 
 class StockListPage extends StatelessWidget {
   final List<Map<String, dynamic>> stocks = [
@@ -24,8 +25,19 @@ class StockListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Indian Stock Market'),
-        centerTitle: true,
+        title: const Text('Stock News', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // Navigate back to Stock Page (Homepage)
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const Homepage()),
+              (route) => false, // Clear all previous routes
+            );
+          },
+        ),
+        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: ListView.builder(
         itemCount: stocks.length,

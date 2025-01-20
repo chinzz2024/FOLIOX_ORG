@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'home_page.dart';
 
 class StockNewsPage extends StatefulWidget {
   const StockNewsPage({super.key});
@@ -30,7 +31,11 @@ class _StockNewsPageState extends State<StockNewsPage>
   }
 
   Future<void> fetchStockNews() async {
+<<<<<<< HEAD
     const url = 'http://127.0.0.1:5000/stock-news'; // Backend API URL
+=======
+    const url = 'http://192.168.86.137:5000/stock-news'; // Backend API URL
+>>>>>>> 5792c0578c1fb412fa321792c1397729bc5017c2
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -95,6 +100,17 @@ class _StockNewsPageState extends State<StockNewsPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stock News', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // Navigate back to Stock Page (Homepage)
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const Homepage()),
+              (route) => false, // Clear all previous routes
+            );
+          },
+        ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
         bottom: TabBar(
           controller: _tabController,
