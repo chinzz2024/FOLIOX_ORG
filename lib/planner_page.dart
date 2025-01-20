@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import 'option.dart';
+import 'profile_page.dart';
 
 class PlannerPage extends StatefulWidget {
   const PlannerPage({super.key});
@@ -22,9 +24,11 @@ class _PlannerPageState extends State<PlannerPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.push(
+            // Navigate back to Stock Page (Homepage)
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const Homepage()),
+              (route) => false, // Clear all previous routes
             );
           },
         ),
@@ -60,7 +64,12 @@ class _PlannerPageState extends State<PlannerPage> {
               const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: () {
-                  // Add your logic for finding the plan
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EmploymentOptionPage(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -81,9 +90,17 @@ class _PlannerPageState extends State<PlannerPage> {
         currentIndex: 1, // Highlight Planner
         onTap: (int index) {
           if (index == 0) {
-            Navigator.push(
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const Homepage()),
+              (route) => false, // Clear all previous routes
+            );
+          }
+          if (index == 2) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+              (route) => false, // Clear all previous routes
             );
           }
         },

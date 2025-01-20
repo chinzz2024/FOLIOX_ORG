@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'planner_page.dart';
 import 'stock_news.dart'; // Make sure you import your StockNewsPage
-
-import 'stock_list.dart'; // Import the new StockPage
+import 'stock_list.dart';
+import 'profile_page.dart';
+// Import the new StockPage
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -25,13 +26,19 @@ class _HomepageState extends State<Homepage> {
         MaterialPageRoute(builder: (context) => const PlannerPage()),
       );
     }
+    if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Homepage', style: TextStyle(color: Colors.white)),
+        title: const Text('Stocks', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: Center(
@@ -85,8 +92,8 @@ class _HomepageState extends State<Homepage> {
         onTap: _onBottomNavTapped,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.trending_up),
+            label: 'Stock',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.savings),

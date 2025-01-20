@@ -22,7 +22,7 @@ class _StockDataPageState extends State<StockDataPage> {
     final String fromDate = '2000-01-01 00:00';
     final String toDate = '2025-01-17 15:30';
 
-    final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
+    final url = Uri.parse('http://192.168.157.137:5000/fetch_historical_data');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
