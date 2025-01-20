@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:foliox/emergency.dart';
+import 'dart:math';
 import 'business.dart';
 import 'dream.dart';
 import 'dreamcar.dart';
 import 'marriage.dart';
 import 'retire.dart';
+import 'emergency.dart';
 
 class CalculationPage extends StatelessWidget {
   final double baseSalary;
@@ -72,9 +73,7 @@ class CalculationPage extends StatelessWidget {
             style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
@@ -107,7 +106,19 @@ class CalculationPage extends StatelessWidget {
               const SizedBox(height: 40),
               buildGoalSelection(context),
               const SizedBox(height: 20),
-              const InstantInvestingWidget(),
+              InstantInvestingWidget(
+                onGetStarted: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    builder: (context) => const SipCalculatorModal(),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -126,57 +137,27 @@ class CalculationPage extends StatelessWidget {
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: GridView.count(
+          child: GridView.builder(
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
-            crossAxisCount: 3,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.75,
-            children: [
-              buildGoalCard(
-                'Retire early',
-                'assets/retire.png',
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: goalDetails.length,
+            itemBuilder: (context, index) {
+              final goal = goalDetails[index];
+              return buildGoalCard(
+                goal['title'],
+                goal['imagePath'],
                 () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const RetireEarly())),
-              ),
-              buildGoalCard(
-                'Emergency fund',
-                'assets/emergency.png',
-                () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const EmergencyFund())),
-              ),
-              buildGoalCard(
-                'Dream home',
-                'assets/home.png',
-                () => Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const DreamHome())),
-              ),
-              buildGoalCard(
-                'Dream car',
-                'assets/car.png',
-                () => Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Dreamcar())),
-              ),
-              buildGoalCard(
-                'Marriage',
-                'assets/marriage.png',
-                () => Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => const Marriage())),
-              ),
-              buildGoalCard(
-                'Business',
-                'assets/business.png',
-                () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const BusinessPage())),
-              ),
-            ],
+                  context,
+                  MaterialPageRoute(builder: (context) => goal['page']),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(height: 20),
@@ -184,8 +165,7 @@ class CalculationPage extends StatelessWidget {
           child: ElevatedButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Create new goal pressed')),
-              );
+                  const SnackBar(content: Text('Create new goal pressed')));
             },
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
@@ -201,40 +181,52 @@ class CalculationPage extends StatelessWidget {
     );
   }
 
-  Widget buildGoalCard(String title, String iconPath, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+  Widget buildGoalCard(String title, String imagePath, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
         elevation: 4,
-        backgroundColor: Colors.white,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            iconPath,
-            width: 80,
-            height: 80,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            Image.asset(imagePath, width: 80, height: 40),
+            const SizedBox(height: 10),
+            Text(title,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
 }
 
+final List<Map<String, dynamic>> goalDetails = [
+  {
+    'title': 'Retire early',
+    'imagePath': 'assets/retire.png',
+    'page': RetireEarly()
+  },
+  {
+    'title': 'Emergency fund',
+    'imagePath': 'assets/emergency.png',
+    'page': EmergencyFund()
+  },
+  {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page': DreamHome()},
+  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': Dreamcar()},
+  {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
+  {
+    'title': 'Business',
+    'imagePath': 'assets/business.png',
+    'page': BusinessPage()
+  },
+];
+
 class InstantInvestingWidget extends StatelessWidget {
-  const InstantInvestingWidget({super.key});
+  final VoidCallback onGetStarted;
+
+  const InstantInvestingWidget({super.key, required this.onGetStarted});
 
   @override
   Widget build(BuildContext context) {
@@ -268,15 +260,10 @@ class InstantInvestingWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Get started button pressed')),
-                    );
-                  },
+                  onPressed: onGetStarted,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF6200EA),
+                    foregroundColor: const Color.fromARGB(255, 0, 0, 0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -287,14 +274,132 @@ class InstantInvestingWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Image.asset(
-            'assets/invest.png',
-            width: 150,
-            height: 150,
-            fit: BoxFit.cover,
+          Image.asset('assets/invest.png',
+              width: 150, height: 150, fit: BoxFit.cover),
+        ],
+      ),
+    );
+  }
+}
+
+class SipCalculatorModal extends StatefulWidget {
+  const SipCalculatorModal({super.key});
+
+  @override
+  State<SipCalculatorModal> createState() => _SipCalculatorModalState();
+}
+
+class _SipCalculatorModalState extends State<SipCalculatorModal> {
+  double monthlyInvestment = 5000;
+  double annualReturnRate = 12;
+  double investmentDuration = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    double futureValue = calculateFutureValue(
+        monthlyInvestment, annualReturnRate, investmentDuration);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Text(
+              'SIP Calculator',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildSlider(
+            label: 'Monthly Investment (₹)',
+            min: 1000,
+            max: 50000,
+            value: monthlyInvestment,
+            onChanged: (value) {
+              setState(() {
+                monthlyInvestment = value;
+              });
+            },
+          ),
+          _buildSlider(
+            label: 'Expected Annual Return Rate (%)',
+            min: 5,
+            max: 15,
+            value: annualReturnRate,
+            onChanged: (value) {
+              setState(() {
+                annualReturnRate = value;
+              });
+            },
+          ),
+          _buildSlider(
+            label: 'Investment Duration (Years)',
+            min: 1,
+            max: 30,
+            value: investmentDuration,
+            onChanged: (value) {
+              setState(() {
+                investmentDuration = value;
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Text(
+              'Estimated Future Value: ₹${futureValue.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 0, 0, 0),
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSlider({
+    required String label,
+    required double min,
+    required double max,
+    required double value,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label: ₹${value.toStringAsFixed(0)}',
+          style: const TextStyle(fontSize: 16),
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: (max - min).toInt(),
+          label: value.toStringAsFixed(0),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  double calculateFutureValue(double monthlyInvestment, double annualReturnRate,
+      double investmentDuration) {
+    int months = (investmentDuration * 12).toInt();
+    double monthlyReturnRate = annualReturnRate / 12 / 100;
+    double futureValue = 0;
+
+    for (int i = 1; i <= months; i++) {
+      futureValue += monthlyInvestment * pow(1 + monthlyReturnRate, i);
+    }
+
+    return futureValue;
   }
 }
