@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -6,8 +8,11 @@ class StockDataPage extends StatefulWidget {
   final String symbolToken;
   final String stockName;
 
-  const StockDataPage(
-      {required this.symbolToken, required this.stockName, super.key});
+  const StockDataPage({
+    required this.symbolToken,
+    required this.stockName,
+    super.key,
+  });
 
   @override
   State<StockDataPage> createState() => _StockDataPageState();
@@ -16,13 +21,13 @@ class StockDataPage extends StatefulWidget {
 class _StockDataPageState extends State<StockDataPage> {
   String _response = '';
   List<CandlestickData> _candlestickData = [];
+  double? _lastPrice;
 
-  // Function to fetch historical data
   Future<void> fetchHistoricalData() async {
     final String fromDate = '2000-01-01 00:00';
-    final String toDate = '2025-01-17 15:30';
+    final String toDate = '2025-01-20 15:30';
 
-    final url = Uri.parse('http://192.168.157.137:5000/fetch_historical_data');
+    final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -49,6 +54,9 @@ class _StockDataPageState extends State<StockDataPage> {
                     item[5].toDouble(),
                   )),
             );
+            if (_candlestickData.isNotEmpty) {
+              _lastPrice = _candlestickData.last.close;
+            }
           });
         } else {
           setState(() {
@@ -67,6 +75,83 @@ class _StockDataPageState extends State<StockDataPage> {
     }
   }
 
+  void _addInvestmentToFirebase(String shares, double amount) async {
+    final User? user = FirebaseAuth.instance.currentUser; // Get current user
+    if (user == null) {
+      // Handle the case when the user is not logged in
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to invest')),
+      );
+      return;
+    }
+
+    // Add investment data to Firestore under 'invest' collection
+    try {
+      await FirebaseFirestore.instance.collection('invest').add({
+        'userId': user.uid,
+        'shares': int.parse(shares),
+        'invest_amount': amount,
+        'stock_name': widget.stockName,
+        'invest_date':
+            Timestamp.now(), // Store the timestamp when the investment was made
+      });
+
+      // Show confirmation message after successful investment
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '₹$amount invested in ${widget.stockName} for $shares shares!'),
+        ),
+      );
+    } catch (e) {
+      // Show error message if something goes wrong
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  void _showInvestmentDialog() {
+    final TextEditingController sharesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Invest in Stock'),
+          content: TextField(
+            controller: sharesController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Enter number of shares to invest',
+              prefixText: 'Shares: ',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final enteredShares = sharesController.text;
+                if (enteredShares.isNotEmpty && _lastPrice != null) {
+                  final totalAmount = double.parse(enteredShares) * _lastPrice!;
+                  Navigator.pop(context);
+                  _addInvestmentToFirebase(
+                      enteredShares, totalAmount); // Add data to Firebase
+                }
+              },
+              child: const Text('Invest'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,29 +164,66 @@ class _StockDataPageState extends State<StockDataPage> {
       appBar: AppBar(
         title: Text(widget.stockName),
       ),
-      body: Center(
-        child: _candlestickData.isNotEmpty
-            ? Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CustomPaint(
-                  size: Size(double.infinity, 400),
-                  painter: CandlestickChartPainter(_candlestickData),
-                ),
-              )
-            : _response.isNotEmpty
-                ? SingleChildScrollView(
-                    child: Text(
-                      _response,
-                      style: const TextStyle(fontSize: 16),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_lastPrice != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.stockName.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  )
-                : const CircularProgressIndicator(),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '₹${_lastPrice!.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: ElevatedButton(
+                      onPressed: _showInvestmentDialog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: const Text(
+                        'Buy',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            Expanded(
+              child: _candlestickData.isNotEmpty
+                  ? CustomPaint(
+                      size: Size(double.infinity, double.infinity),
+                      painter: CandlestickChartPainter(_candlestickData),
+                    )
+                  : _response.isNotEmpty
+                      ? Center(child: Text(_response))
+                      : const Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// Data model for candlestick
+// Data model
 class CandlestickData {
   final DateTime date;
   final double open;
@@ -128,28 +250,44 @@ class CandlestickChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
+    final paint = Paint()..isAntiAlias = true;
 
-    final double candleWidth = size.width / data.length;
-    final double chartHeight = size.height;
+    final candleWidth = size.width / data.length;
+    final chartHeight = size.height;
 
-    final double minPrice =
-        data.map((d) => d.low).reduce((a, b) => a < b ? a : b);
-    final double maxPrice =
-        data.map((d) => d.high).reduce((a, b) => a > b ? a : b);
-    final double priceRange = maxPrice - minPrice;
+    final minPrice = data.map((d) => d.low).reduce((a, b) => a < b ? a : b);
+    final maxPrice = data.map((d) => d.high).reduce((a, b) => a > b ? a : b);
+    final priceRange = maxPrice - minPrice;
 
-    // Draw grid lines
+    // Draw grid and price labels
     final gridPaint = Paint()
       ..color = Colors.grey.withOpacity(0.3)
       ..style = PaintingStyle.stroke;
+    final textStyle = TextStyle(
+      color: Colors.black,
+      fontSize: 12,
+    );
+
     for (int i = 0; i <= 5; i++) {
       final y = i * chartHeight / 5;
+      final price = maxPrice - (i * priceRange / 5);
+
+      // Draw horizontal grid line
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+
+      // Draw price label
+      final textSpan = TextSpan(
+        text: price.toStringAsFixed(2),
+        style: textStyle,
+      );
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(canvas, Offset(size.width - 40, y - 8));
     }
 
+    // Draw candlesticks
     for (int i = 0; i < data.length; i++) {
       final candlestick = data[i];
 
@@ -162,8 +300,8 @@ class CandlestickChartPainter extends CustomPainter {
       final double lowY = chartHeight -
           ((candlestick.low - minPrice) / priceRange * chartHeight);
 
-      final bool isIncrease = candlestick.close >= candlestick.open;
-      paint.color = isIncrease ? Colors.green : Colors.red;
+      paint.color =
+          candlestick.close >= candlestick.open ? Colors.green : Colors.red;
 
       canvas.drawLine(
         Offset(i * candleWidth + candleWidth / 2, highY),
@@ -180,21 +318,6 @@ class CandlestickChartPainter extends CustomPainter {
         ),
         paint,
       );
-    }
-
-    // Draw price labels
-    final textPainter = TextPainter(
-      textAlign: TextAlign.right,
-      textDirection: TextDirection.ltr,
-    );
-    for (int i = 0; i <= 5; i++) {
-      final price = minPrice + (priceRange / 5) * i;
-      textPainter.text = TextSpan(
-        text: price.toStringAsFixed(2),
-        style: const TextStyle(color: Colors.black, fontSize: 12),
-      );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(0, chartHeight - (i * chartHeight / 5)));
     }
   }
 

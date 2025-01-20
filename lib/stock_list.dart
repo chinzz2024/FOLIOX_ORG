@@ -6,15 +6,15 @@ class StockListPage extends StatelessWidget {
     {
       'name': 'Reliance Industries',
       'symbol': 'RELIANCE',
-      'symbolToken': '28859'
+      'symbolToken': '2885'
     },
     {
       'name': 'Tata Consultancy Services',
       'symbol': 'TCS',
-      'symbolToken': '1300'
+      'symbolToken': '11536'
     },
-    {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '500112'},
-    {'name': 'Infosys', 'symbol': 'INFY', 'symbolToken': '1594'},
+    {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '1333'},
+    {'name': 'HITECH', 'symbol': 'HITECH', 'symbolToken': '2868'},
     {'name': 'State Bank of India', 'symbol': 'SBIN', 'symbolToken': '3045'},
   ];
 
