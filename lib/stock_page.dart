@@ -7,10 +7,12 @@ import 'dart:convert';
 class StockDataPage extends StatefulWidget {
   final String symbolToken;
   final String stockName;
+  final String stockDocumentId; // Stock document ID
 
   const StockDataPage({
     required this.symbolToken,
     required this.stockName,
+    required this.stockDocumentId, // Include the stock document ID
     super.key,
   });
 
@@ -75,7 +77,7 @@ class _StockDataPageState extends State<StockDataPage> {
     }
   }
 
-  void _addInvestmentToFirebase(String shares, double amount) async {
+  void _addInvestmentToPortfolio(String shares, double amount) async {
     final User? user = FirebaseAuth.instance.currentUser; // Get current user
     if (user == null) {
       // Handle the case when the user is not logged in
@@ -85,16 +87,22 @@ class _StockDataPageState extends State<StockDataPage> {
       return;
     }
 
-    // Add investment data to Firestore under 'invest' collection
+    // Add investment data to Firestore under user's portfolios subcollection
     try {
-      await FirebaseFirestore.instance.collection('invest').add({
-        'userId': user.uid,
+      final portfolioData = {
+        'stockId': widget.stockDocumentId, // Stock document ID
+        'stockName': widget.stockName,
         'shares': int.parse(shares),
-        'invest_amount': amount,
-        'stock_name': widget.stockName,
-        'invest_date':
-            Timestamp.now(), // Store the timestamp when the investment was made
-      });
+        'purchasePrice': _lastPrice,
+        'totalInvestment': amount,
+        'investmentDate': Timestamp.now(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('users') // Users collection
+          .doc(user.uid) // Current user's document
+          .collection('portfolios') // Subcollection for portfolios
+          .add(portfolioData);
 
       // Show confirmation message after successful investment
       ScaffoldMessenger.of(context).showSnackBar(
@@ -140,8 +148,8 @@ class _StockDataPageState extends State<StockDataPage> {
                 if (enteredShares.isNotEmpty && _lastPrice != null) {
                   final totalAmount = double.parse(enteredShares) * _lastPrice!;
                   Navigator.pop(context);
-                  _addInvestmentToFirebase(
-                      enteredShares, totalAmount); // Add data to Firebase
+                  _addInvestmentToPortfolio(
+                      enteredShares, totalAmount); // Add data to portfolio
                 }
               },
               child: const Text('Invest'),
@@ -223,7 +231,7 @@ class _StockDataPageState extends State<StockDataPage> {
   }
 }
 
-// Data model
+// Data model and painter remain unchanged.
 class CandlestickData {
   final DateTime date;
   final double open;
@@ -259,10 +267,10 @@ class CandlestickChartPainter extends CustomPainter {
     final maxPrice = data.map((d) => d.high).reduce((a, b) => a > b ? a : b);
     final priceRange = maxPrice - minPrice;
 
-    // Draw grid and price labels
     final gridPaint = Paint()
       ..color = Colors.grey.withOpacity(0.3)
       ..style = PaintingStyle.stroke;
+
     final textStyle = TextStyle(
       color: Colors.black,
       fontSize: 12,
@@ -272,10 +280,8 @@ class CandlestickChartPainter extends CustomPainter {
       final y = i * chartHeight / 5;
       final price = maxPrice - (i * priceRange / 5);
 
-      // Draw horizontal grid line
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
 
-      // Draw price label
       final textSpan = TextSpan(
         text: price.toStringAsFixed(2),
         style: textStyle,
@@ -287,7 +293,6 @@ class CandlestickChartPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(size.width - 40, y - 8));
     }
 
-    // Draw candlesticks
     for (int i = 0; i < data.length; i++) {
       final candlestick = data[i];
 
@@ -306,23 +311,20 @@ class CandlestickChartPainter extends CustomPainter {
       canvas.drawLine(
         Offset(i * candleWidth + candleWidth / 2, highY),
         Offset(i * candleWidth + candleWidth / 2, lowY),
-        paint..strokeWidth = 2,
-      );
-
-      canvas.drawRect(
-        Rect.fromLTRB(
-          i * candleWidth + candleWidth * 0.2,
-          openY,
-          (i + 1) * candleWidth - candleWidth * 0.2,
-          closeY,
-        ),
         paint,
       );
+
+      final rect = Rect.fromLTRB(
+        i * candleWidth + candleWidth * 0.1,
+        openY,
+        (i + 1) * candleWidth - candleWidth * 0.1,
+        closeY,
+      );
+
+      canvas.drawRect(rect, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
-  }
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }

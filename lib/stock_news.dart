@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -16,18 +18,44 @@ class _StockNewsPageState extends State<StockNewsPage>
   late TabController _tabController;
   List<dynamic> stockNews = [];
   List<dynamic> myStockNews = []; // List for saved stock news
+  List<String> purchasedStocks = []; // Dynamically fetched purchased stocks
   bool isLoading = true;
   String errorMessage = '';
-
-  // User's purchased stocks (in a real app, this could be fetched from the user's account or database)
-  List<String> purchasedStocks = ['SBI', 'GOOG', 'AMZN'];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-        length: 2, vsync: this); // Create TabController for 2 tabs
+    _tabController = TabController(length: 2, vsync: this);
+    _initializePurchasedStocks(); // Fetch user's purchased stocks
     fetchStockNews();
+  }
+
+  Future<void> _initializePurchasedStocks() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser; // Get current user
+      if (user != null) {
+        // Fetch user's portfolio from Firestore
+        final QuerySnapshot portfolioSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('portfolios')
+            .get();
+
+        // Extract stock names and update purchasedStocks
+        setState(() {
+          purchasedStocks = portfolioSnapshot.docs
+              .map((doc) => doc['stockName'] as String)
+              .toList();
+        });
+
+        // Log the purchased stocks
+        debugPrint('Purchased Stocks: $purchasedStocks');
+      } else {
+        debugPrint('User not logged in');
+      }
+    } catch (e) {
+      debugPrint('Error fetching purchased stocks: $e');
+    }
   }
 
   Future<void> fetchStockNews() async {
@@ -67,9 +95,12 @@ class _StockNewsPageState extends State<StockNewsPage>
       }
     }
     setState(() {
-      myStockNews
-          .addAll(matchingNews); // Add matching news to My Stock News list
+      myStockNews.addAll(matchingNews); // Add matching news to My Stock News
     });
+
+    // Log the saved news to the console for debugging
+    debugPrint(
+        'Matching News: ${myStockNews.map((news) => news['title']).toList()}');
   }
 
   Future<void> _openUrl(String url) async {
@@ -87,6 +118,10 @@ class _StockNewsPageState extends State<StockNewsPage>
     setState(() {
       myStockNews.add(news); // Add the selected news to My Stock News list
     });
+
+    // Log saved news to the console for debugging
+    debugPrint('Saved News: ${news['title']}');
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('News saved to My Stock News')),
     );

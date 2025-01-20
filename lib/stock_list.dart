@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'stock_page.dart'; // Import the StockDataPage
 import 'home_page.dart';
 
@@ -16,7 +17,7 @@ class StockListPage extends StatelessWidget {
     },
     {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '1333'},
     {'name': 'HITECH', 'symbol': 'HITECH', 'symbolToken': '2868'},
-    {'name': 'State Bank of India', 'symbol': 'SBIN', 'symbolToken': '3045'},
+    {'name': 'State Bank of India', 'symbol': 'SBI', 'symbolToken': '3045'},
   ];
 
   StockListPage({super.key});
@@ -29,7 +30,7 @@ class StockListPage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Navigate back to Stock Page (Homepage)
+            // Navigate back to Homepage
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const Homepage()),
@@ -46,24 +47,58 @@ class StockListPage extends StatelessWidget {
           return ListTile(
             title: Text(
               stock['name'],
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Text(stock['symbol']),
-            onTap: () {
-              // Navigate to StockDataPage with symbolToken
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StockDataPage(
-                    symbolToken: stock['symbolToken'],
-                    stockName: stock['name'],
+            onTap: () async {
+              // Fetch the document ID from Firestore
+              String? documentId = await _getStockDocumentId(stock['symbol']);
+
+              if (documentId != null) {
+                // Navigate to StockDataPage with the documentId and stock details
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StockDataPage(
+                      symbolToken: stock['symbolToken'],
+                      stockName: stock['name'],
+                      stockDocumentId: documentId, // Pass the document ID
+                    ),
                   ),
-                ),
-              );
+                );
+              } else {
+                // Show an error if the stock is not found
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content:
+                          Text('Stock ${stock['name']} not found in database')),
+                );
+              }
             },
           );
         },
       ),
     );
+  }
+
+  // Function to fetch the stock document ID based on the symbol
+  Future<String?> _getStockDocumentId(String symbol) async {
+    try {
+      // Query Firestore collection `stocks` where the `symbol` matches
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('stocks')
+          .where('symbol', isEqualTo: symbol)
+          .limit(1)
+          .get();
+
+      // If a matching document is found, return its document ID
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.id;
+      }
+      return null; // Return null if no document is found
+    } catch (e) {
+      print('Error fetching stock document ID: $e');
+      return null;
+    }
   }
 }
