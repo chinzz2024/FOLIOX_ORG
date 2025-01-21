@@ -152,7 +152,7 @@ class _RetireEarlyState extends State<RetireEarly> {
             const SizedBox(height: 16),
             if (_rules.isNotEmpty)
               const Text(
-                'Helpful Rules for Your Retirement:',
+                'Helpful tips for Your Retirement:',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
