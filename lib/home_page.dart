@@ -4,7 +4,6 @@ import 'planner_page.dart';
 import 'stock_news.dart';
 import 'stock_list.dart';
 import 'profile_page.dart';
-import 'login_page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -43,7 +42,6 @@ class _HomepageState extends State<Homepage> {
           'Stocks',
           style: TextStyle(color: Colors.white),
         ),
-      
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: SingleChildScrollView(
@@ -71,7 +69,8 @@ class _HomepageState extends State<Homepage> {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             image: DecorationImage(
-                              image: AssetImage(url),  // Use AssetImage instead of NetworkImage
+                              image: AssetImage(
+                                  url), // Use AssetImage instead of NetworkImage
                               fit: BoxFit.cover,
                             ),
                           ),

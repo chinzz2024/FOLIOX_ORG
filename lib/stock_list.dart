@@ -15,9 +15,6 @@ class StockListPage extends StatelessWidget {
       'symbol': 'TCS.NS', // Corrected stock symbol for TCS
       'symbolToken': '11536'
     },
-    {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '1333'},
-    {'name': 'HITECH', 'symbol': 'HITECH', 'symbolToken': '2868'},
-    {'name': 'State Bank of India', 'symbol': 'SBI', 'symbolToken': '3045'},
     {
       'name': 'HDFC Bank',
       'symbol': 'HDFCBANK.NS', // Corrected stock symbol for HDFC Bank
