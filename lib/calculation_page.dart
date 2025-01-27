@@ -161,22 +161,6 @@ class CalculationPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Create new goal pressed')));
-            },
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-            ),
-            child: const Text(
-              'Create new goal',
-              style: TextStyle(fontSize: 18, color: Colors.white),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -214,7 +198,7 @@ final List<Map<String, dynamic>> goalDetails = [
     'page': EmergencyFund()
   },
   {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page': DreamHome()},
-  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': Dreamcar()},
+  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamCar()},
   {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
   {
     'title': 'Business',

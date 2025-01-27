@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from routes.stock_news import stock_news_bp
 from routes.stock_info_routes import stock_info_bp
+from routes.car_scraper_routes import car_scraper_bp  # Import the new car scraper blueprint
 
 app = Flask(__name__)
 
@@ -13,6 +14,9 @@ app.register_blueprint(stock_news_bp)
 
 # Register the stock info route
 app.register_blueprint(stock_info_bp)
+
+# Register the car scraper route
+app.register_blueprint(car_scraper_bp)
 
 if __name__ == '__main__':
     app.run(debug=True)
