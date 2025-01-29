@@ -214,7 +214,7 @@ final List<Map<String, dynamic>> goalDetails = [
     'page': EmergencyFund()
   },
   {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page': DreamHome()},
-  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': Dreamcar()},
+  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamCarPage},
   {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
   {
     'title': 'Business',

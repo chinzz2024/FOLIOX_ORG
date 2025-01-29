@@ -59,7 +59,7 @@ class _StockNewsPageState extends State<StockNewsPage>
   }
 
   Future<void> fetchStockNews() async {
-    const url = 'http://192.168.86.137:5000/stock-news'; // Backend API URL
+    const url = 'http://127.0.0.1:5000/stock-news'; // Backend API URL
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -113,18 +113,7 @@ class _StockNewsPageState extends State<StockNewsPage>
     }
   }
 
-  void _saveStockNews(Map<String, dynamic> news) {
-    setState(() {
-      myStockNews.add(news); // Add the selected news to My Stock News list
-    });
-
-    // Log saved news to the console for debugging
-    debugPrint('Saved News: ${news['title']}');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('News saved to My Stock News')),
-    );
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -176,10 +165,7 @@ class _StockNewsPageState extends State<StockNewsPage>
                             title: Text(news['title'] ?? 'No Title'),
                             subtitle: Text(news['link'] ?? 'No Link'),
                             onTap: () => _openUrl(news['link'] ?? ''),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.save),
-                              onPressed: () => _saveStockNews(news),
-                            ),
+                          
                           ),
                         );
                       },

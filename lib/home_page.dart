@@ -43,7 +43,15 @@ class _HomepageState extends State<Homepage> {
           'Stocks',
           style: TextStyle(color: Colors.white),
         ),
-      
+      leading: IconButton( 
+      icon: const Icon(Icons.arrow_back, color: Colors.white),
+      onPressed: (){
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginPage()),);
+      },
+      ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: SingleChildScrollView(
