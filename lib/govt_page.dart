@@ -86,7 +86,7 @@ class _IncomePageState extends State<IncomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Government Employee',
+          'Details',
           style: TextStyle(color: Colors.white),
         ),
         leading: IconButton(

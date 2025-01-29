@@ -85,13 +85,13 @@ class _ProfilePageState extends State<ProfilePage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : userDataUI(),
-      bottomNavigationBar: BottomNavigationBar(
+     bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onBottomNavTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.trending_up),
-            label: 'Stock',
+            label: 'Stocks',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.savings),
@@ -102,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
             label: 'Profile',
           ),
         ],
-        selectedItemColor: Colors.black,
+        selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
       ),
     );
