@@ -110,7 +110,7 @@ class _RetireEarlyState extends State<RetireEarly> {
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 50,
+                  width: 80,
                   height: 40,
                   child: TextField(
                     controller: _ageController,

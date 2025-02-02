@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:foliox/login_page.dart';
 import 'home_page.dart';
 import 'planner_page.dart';
+import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -68,19 +70,28 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Profile',style: TextStyle(color: Colors.white),),
+         leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Homepage()),
+            );
+          },
+        ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : userDataUI(),
-      bottomNavigationBar: BottomNavigationBar(
+     bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onBottomNavTapped,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.trending_up),
-            label: 'Stock',
+            label: 'Stocks',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.savings),
@@ -91,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
             label: 'Profile',
           ),
         ],
-        selectedItemColor: Colors.black,
+        selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
       ),
     );
@@ -156,7 +167,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 await FirebaseAuth.instance.signOut();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const Homepage()),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               },
               style: ElevatedButton.styleFrom(

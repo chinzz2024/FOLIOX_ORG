@@ -7,14 +7,15 @@ class StockListPage extends StatelessWidget {
   final List<Map<String, dynamic>> stocks = [
     {
       'name': 'Reliance Industries',
-      'symbol': 'RELIANCE.NS', // Corrected stock symbol for Reliance Industries
+      'symbol': 'RELIANCE.NS',  // Corrected stock symbol for Reliance Industries
       'symbolToken': '2885'
     },
     {
       'name': 'Tata Consultancy Services',
-      'symbol': 'TCS.NS', // Corrected stock symbol for TCS
+      'symbol': 'TCS.NS',  // Corrected stock symbol for TCS
       'symbolToken': '11536'
     },
+<<<<<<< HEAD
     {
       'name': 'HDFC Bank',
       'symbol': 'HDFCBANK.NS', // Corrected stock symbol for HDFC Bank
@@ -31,6 +32,14 @@ class StockListPage extends StatelessWidget {
       'symbol': 'SBIN.NS', // Corrected stock symbol for State Bank of India
       'symbolToken': '3045'
     },
+=======
+
+    {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '1333'},
+    {'name': 'HITECH', 'symbol': 'HITECH', 'symbolToken': '2868'},
+    {'name': 'State Bank of India', 'symbol': 'SBI', 'symbolToken': '3045'},
+    {'name': 'Dixon', 'symbol': 'Dixon', 'symbolToken': '21690'},
+
+>>>>>>> 074d24093232d406712df09d11c664e3f18cc93e
   ];
 
   StockListPage({super.key});

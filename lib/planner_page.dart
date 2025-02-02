@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:foliox/govt_page.dart';
 import 'home_page.dart';
-import 'option.dart';
+import 'govt_page.dart';
 import 'profile_page.dart';
 
 class PlannerPage extends StatefulWidget {
@@ -88,7 +89,7 @@ class _PlannerPageState extends State<PlannerPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const EmploymentOptionPage(),
+                        builder: (context) => const IncomePage(),
                       ),
                     );
                   },
