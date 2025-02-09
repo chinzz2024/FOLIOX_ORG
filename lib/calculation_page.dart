@@ -8,65 +8,12 @@ import 'retire.dart';
 import 'emergency.dart';
 
 class CalculationPage extends StatelessWidget {
-  final double baseSalary;
-  final double dearnessAllowance;
-  final double houseRentAllowance;
-  final double transportAllowance;
-  final List<double> otherIncome;
+  final double savings;
 
-  final double providentFund;
-  final double incomeTax;
-  final double professionalTax;
-  final double lic;
-  final double vehicleLoan;
-
-  final double housingRent;
-  final double utilities;
-  final double transportation;
-  final double education;
-  final List<double> otherExpenditures;
-
-  const CalculationPage({
-    super.key,
-    required this.baseSalary,
-    required this.dearnessAllowance,
-    required this.houseRentAllowance,
-    required this.transportAllowance,
-    required this.otherIncome,
-    required this.providentFund,
-    required this.incomeTax,
-    required this.professionalTax,
-    required this.lic,
-    required this.vehicleLoan,
-    required this.housingRent,
-    required this.utilities,
-    required this.transportation,
-    required this.education,
-    required this.otherExpenditures,
-  });
+  const CalculationPage({super.key, required this.savings});
 
   @override
   Widget build(BuildContext context) {
-    final double totalOtherIncome =
-        otherIncome.fold(0.0, (sum, item) => sum + item);
-    final double totalOtherExpenditures =
-        otherExpenditures.fold(0.0, (sum, item) => sum + item);
-
-    final double totalIncome = baseSalary +
-        dearnessAllowance +
-        houseRentAllowance +
-        transportAllowance +
-        totalOtherIncome;
-    final double totalDeductions =
-        providentFund + incomeTax + professionalTax + lic + vehicleLoan;
-    final double totalExpenses = housingRent +
-        utilities +
-        transportation +
-        education +
-        totalOtherExpenditures;
-
-    final double savings = totalIncome - (totalDeductions + totalExpenses);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Savings Calculation',
@@ -161,7 +108,6 @@ class CalculationPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        
       ],
     );
   }
@@ -176,10 +122,11 @@ class CalculationPage extends StatelessWidget {
           children: [
             Image.asset(imagePath, width: 80, height: 90),
             const SizedBox(height: 8),
-            Text(title,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),
@@ -199,7 +146,7 @@ final List<Map<String, dynamic>> goalDetails = [
     'page': EmergencyFund()
   },
   {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page': DreamHome()},
-  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': Dreamcar()},
+  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamCar()},
   {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
   {
     'title': 'Business',
@@ -375,8 +322,8 @@ class _SipCalculatorModalState extends State<SipCalculatorModal> {
     );
   }
 
-  double calculateFutureValue(double monthlyInvestment, double annualReturnRate,
-      double investmentDuration) {
+  double calculateFutureValue(
+      double monthlyInvestment, double annualReturnRate, double investmentDuration) {
     int months = (investmentDuration * 12).toInt();
     double monthlyReturnRate = annualReturnRate / 12 / 100;
     double futureValue = 0;

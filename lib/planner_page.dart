@@ -12,7 +12,7 @@ class PlannerPage extends StatefulWidget {
 }
 
 class _PlannerPageState extends State<PlannerPage> {
-  int _currentIndex = 1;
+  final int _currentIndex = 1;
 
   void _onBottomNavTapped(int index) {
     if (index == 0) {

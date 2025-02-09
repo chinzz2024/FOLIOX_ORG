@@ -7,73 +7,57 @@ class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
   @override
-  _SignUpPageState createState() => _SignUpPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final TextEditingController fullNameController = TextEditingController();
-  final TextEditingController phoneNumberController = TextEditingController();
-  final TextEditingController ageController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController panNumberController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
+  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _panNumberController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
       TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
 
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+  String? _errorMessage;
 
-  Future<void> signUp() async {
+  Future<void> _signUp() async {
+    setState(() {
+      _errorMessage = null;
+    });
+
     if (_formKey.currentState?.validate() ?? false) {
-      final String fullName = fullNameController.text.trim();
-      final String phoneNumber = phoneNumberController.text.trim();
-      final String age = ageController.text.trim();
-      final String email = emailController.text.trim();
-      final String panNumber = panNumberController.text.trim();
-      final String password = passwordController.text.trim();
-
       try {
-        // Firebase Authentication
         UserCredential userCredential =
             await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
 
-        // Get the user's UID (unique identifier)
         String uid = userCredential.user!.uid;
-
-        // Firestore - Create a new document in the 'users' collection
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'fullName': fullName,
-          'phoneNumber': phoneNumber,
-          'age': age,
-          'email': email,
-          'panNumber': panNumber,
-          'createdAt':
-              Timestamp.now(), // Optionally track when the account was created
-          'portfolioValue': 0, // You can initialize with a default value
-          'walletBalance': 0, // You can initialize with a default value
+          'fullName': _fullNameController.text.trim(),
+          'phoneNumber': _phoneNumberController.text.trim(),
+          'age': _ageController.text.trim(),
+          'email': _emailController.text.trim(),
+          'panNumber': _panNumberController.text.trim(),
+          'createdAt': Timestamp.now(),
+          'portfolioValue': 0,
+          'walletBalance': 0,
         });
-
-        // Log the details (or store them in a database)
-        print(
-            "User Details: Full Name: $fullName, Phone: $phoneNumber, Age: $age, PAN: $panNumber");
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account created successfully!")),
-        );
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginPage()),
         );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.toString()}")),
-        );
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _errorMessage = e.message;
+        });
       }
     }
   }
@@ -81,143 +65,131 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E88E5), Color(0xFF64B5F6)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
-                  "Sign Up",
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text("Sign up to get started with your account"),
-                const SizedBox(height: 16),
-                buildTextField(
-                  controller: fullNameController,
-                  label: "Full Name",
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Full Name is required";
-                    }
-                    return null;
-                  },
-                ),
-                buildTextField(
-                  controller: phoneNumberController,
-                  label: "Phone Number",
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Phone Number is required";
-                    }
-                    return null;
-                  },
-                ),
-                buildTextField(
-                  controller: ageController,
-                  label: "Age",
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Age is required";
-                    }
-                    return null;
-                  },
-                ),
-                buildTextField(
-                  controller: emailController,
-                  label: "Email",
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Email is required";
-                    } else if (!RegExp(r"^[^@]+@[^@]+\.[^@]+")
-                        .hasMatch(value)) {
-                      return "Enter a valid email address";
-                    }
-                    return null;
-                  },
-                ),
-                buildTextField(
-                  controller: panNumberController,
-                  label: "PAN Number",
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "PAN Number is required";
-                    }
-                    return null;
-                  },
-                ),
-                buildPasswordField(
-                  controller: passwordController,
-                  label: "Password",
-                  obscureText: _obscurePassword,
-                  toggleVisibility: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-                buildPasswordField(
-                  controller: confirmPasswordController,
-                  label: "Confirm Password",
-                  obscureText: _obscureConfirmPassword,
-                  toggleVisibility: () {
-                    setState(() {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Confirm Password is required";
-                    } else if (value != passwordController.text) {
-                      return "Passwords do not match";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: signUp,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text("Sign Up"),
+                  "FolioX",
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 16),
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text("Already have an account?"),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LoginPage()),
-                          );
-                        },
-                        child: const Text("Log in"),
+                const Text(
+                  "Create your Financial Portfolio Account",
+                  style: TextStyle(fontSize: 18, color: Colors.white70),
+                ),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
                       ),
                     ],
                   ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Sign Up",
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildTextField(
+                            _fullNameController, "Full Name", Icons.person),
+                        _buildTextField(
+                            _phoneNumberController, "Phone Number", Icons.phone,
+                            keyboardType: TextInputType.phone),
+                        _buildTextField(_ageController, "Age", Icons.cake,
+                            keyboardType: TextInputType.number),
+                        _buildTextField(_emailController, "Email", Icons.email,
+                            keyboardType: TextInputType.emailAddress),
+                        _buildTextField(_panNumberController, "PAN Number",
+                            Icons.credit_card),
+                        _buildPasswordField(
+                            _passwordController, "Password", _isPasswordVisible,
+                            () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        }),
+                        _buildPasswordField(_confirmPasswordController,
+                            "Confirm Password", _isConfirmPasswordVisible, () {
+                          setState(() {
+                            _isConfirmPasswordVisible =
+                                !_isConfirmPasswordVisible;
+                          });
+                        }),
+                        if (_errorMessage != null)
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 14),
+                          ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _signUp,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E88E5),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text("Sign Up",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Already have an account?",
+                        style: TextStyle(color: Colors.white)),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginPage()),
+                        );
+                      },
+                      child: const Text("Log In",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -227,52 +199,26 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget buildTextField({
-    required TextEditingController controller,
-    required String label,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
+  Widget _buildTextField(
+      TextEditingController controller, String label, IconData icon,
+      {TextInputType keyboardType = TextInputType.text}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextFormField(
+      child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          prefixIcon: Icon(icon),
         ),
-        validator: validator,
       ),
     );
   }
 
-  Widget buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required bool obscureText,
-    required VoidCallback toggleVisibility,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          suffixIcon: IconButton(
-            icon: Icon(obscureText ? Icons.visibility : Icons.visibility_off),
-            onPressed: toggleVisibility,
-          ),
-        ),
-        validator: validator,
-      ),
-    );
+  Widget _buildPasswordField(TextEditingController controller, String label,
+      bool isVisible, VoidCallback toggleVisibility) {
+    return _buildTextField(controller, label, Icons.lock,
+        keyboardType: TextInputType.visiblePassword);
   }
 }

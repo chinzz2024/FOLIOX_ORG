@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RetireEarly extends StatefulWidget {
   const RetireEarly({super.key});
@@ -11,8 +13,8 @@ class _RetireEarlyState extends State<RetireEarly> {
   final TextEditingController _ageController = TextEditingController();
   String? _displayMessage;
   List<String> _rules = [];
+  String? _financialStatus;
 
-  // Rules categorized by age ranges
   final Map<String, List<String>> _ageBasedRules = {
     '20-30': [
       'Start saving early to leverage compound interest.',
@@ -36,12 +38,26 @@ class _RetireEarlyState extends State<RetireEarly> {
     ],
   };
 
-  void _submit() {
+  Future<Map<String, dynamic>?> _getUserFinancials() async {
+    String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return null;
+
+    DocumentSnapshot doc =
+        await FirebaseFirestore.instance.collection('planner').doc(uid).get();
+
+    if (doc.exists && doc.data() != null) {
+      return doc.data() as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  void _submit() async {
     final enteredAgeText = _ageController.text;
     if (enteredAgeText.isEmpty) {
       setState(() {
         _displayMessage = 'Please enter a valid age.';
         _rules = [];
+        _financialStatus = null;
       });
       return;
     }
@@ -51,6 +67,7 @@ class _RetireEarlyState extends State<RetireEarly> {
       setState(() {
         _displayMessage = 'Please enter a valid age.';
         _rules = [];
+        _financialStatus = null;
       });
       return;
     }
@@ -66,9 +83,33 @@ class _RetireEarlyState extends State<RetireEarly> {
       ageCategory = '51+';
     }
 
+    final financialData = await _getUserFinancials();
+    if (financialData == null) {
+      setState(() {
+        _displayMessage = 'Could not fetch financial data.';
+        _rules = [];
+        _financialStatus = null;
+      });
+      return;
+    }
+
+    double income = (financialData['income'] as num?)?.toDouble() ?? 0.0;
+    double savings = (financialData['savings'] as num?)?.toDouble() ?? 0.0;
+    double expenditure = (financialData['expenditure'] as num?)?.toDouble() ?? 0.0;
+    double deduction = (financialData['deduction'] as num?)?.toDouble() ?? 0.0;
+
+    double needs = expenditure + deduction;
+    double wants = income * 0.30;
+    double expectedSavings = income * 0.20;
+
+    bool followsRule = savings >= expectedSavings;
+
     setState(() {
       _displayMessage = 'You want to retire at $enteredAge years.';
       _rules = _ageBasedRules[ageCategory]!;
+      _financialStatus = followsRule
+          ? '✅ You are on track with the 50-30-20 rule!'
+          : '❌ You need to save at least ₹${expectedSavings.toStringAsFixed(2)} to follow the 50-30-20 rule.';
     });
   }
 
@@ -147,6 +188,16 @@ class _RetireEarlyState extends State<RetireEarly> {
                   fontSize: 16,
                   color: Colors.blue,
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (_financialStatus != null)
+              Text(
+                _financialStatus!,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _financialStatus!.contains('✅') ? Colors.green : Colors.red,
                 ),
               ),
             const SizedBox(height: 16),

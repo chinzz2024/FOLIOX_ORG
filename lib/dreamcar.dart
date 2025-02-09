@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 
 class DreamCar extends StatefulWidget {
-  const DreamCar({Key? key}) : super(key: key);
+  const DreamCar({super.key});
 
   @override
   State<DreamCar> createState() => _DreamCarState();
