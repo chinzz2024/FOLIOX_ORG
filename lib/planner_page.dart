@@ -51,7 +51,8 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
-      body: Center( // Center the contents inside the body
+      body: Center(
+        // Center the contents inside the body
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Container(
@@ -69,8 +70,10 @@ class _PlannerPageState extends State<PlannerPage> {
               ],
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, // Center contents vertically
-              crossAxisAlignment: CrossAxisAlignment.center, // Align text and button in center
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Center contents vertically
+              crossAxisAlignment:
+                  CrossAxisAlignment.center, // Align text and button in center
               children: [
                 const Text(
                   'Invest every month and grow your wealth with SIP',
