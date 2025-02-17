@@ -15,12 +15,31 @@ class StockListPage extends StatelessWidget {
       'symbol': 'TCS.NS',  // Corrected stock symbol for TCS
       'symbolToken': '11536'
     },
+<<<<<<< HEAD
+    {
+      'name': 'HDFC Bank',
+      'symbol': 'HDFCBANK.NS', // Corrected stock symbol for HDFC Bank
+      'symbolToken': '1333'
+    },
+    {
+      'name': 'HITECH',
+      'symbol':
+          'HITECH.NS', // Assuming HITECH is a valid stock, adjusted format
+      'symbolToken': '2868'
+    },
+    {
+      'name': 'State Bank of India',
+      'symbol': 'SBIN.NS', // Corrected stock symbol for State Bank of India
+      'symbolToken': '3045'
+    },
+=======
 
     {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '1333'},
     {'name': 'HITECH', 'symbol': 'HITECH', 'symbolToken': '2868'},
     {'name': 'State Bank of India', 'symbol': 'SBI', 'symbolToken': '3045'},
     {'name': 'Dixon', 'symbol': 'Dixon', 'symbolToken': '21690'},
 
+>>>>>>> 074d24093232d406712df09d11c664e3f18cc93e
   ];
 
   StockListPage({super.key});

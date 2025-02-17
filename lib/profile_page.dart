@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:foliox/login_page.dart';
 import 'home_page.dart';
 import 'planner_page.dart';
-import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -70,8 +69,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile',style: TextStyle(color: Colors.white),),
-         leading: IconButton(
+        title: const Text(
+          'Profile',
+          style: TextStyle(color: Colors.white),
+        ),
+        leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.push(
@@ -85,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : userDataUI(),
-     bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onBottomNavTapped,
         items: const [
@@ -127,7 +129,8 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
             // Name and Email
             Text(
-              fullName ?? 'Loading...', // Display "Loading..." if fullName is null
+              fullName ??
+                  'Loading...', // Display "Loading..." if fullName is null
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -145,7 +148,8 @@ class _ProfilePageState extends State<ProfilePage> {
             Divider(color: Colors.grey[300], thickness: 1),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.account_balance_wallet, color: Colors.blue),
+              leading:
+                  const Icon(Icons.account_balance_wallet, color: Colors.blue),
               title: const Text('Portfolio Value'),
               subtitle: Text(portfolioValue ?? 'Loading...'), // Fallback text
             ),
@@ -172,7 +176,8 @@ class _ProfilePageState extends State<ProfilePage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

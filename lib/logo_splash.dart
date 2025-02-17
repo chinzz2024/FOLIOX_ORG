@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 class LogoSplashScreen extends StatefulWidget {
+  const LogoSplashScreen({super.key});
+
   @override
   _LogoSplashScreenState createState() => _LogoSplashScreenState();
 }
