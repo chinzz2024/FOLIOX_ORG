@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:foliox/login_page.dart';
 import 'planner_page.dart';
 import 'stock_news.dart';
 import 'stock_list.dart';
@@ -42,8 +43,8 @@ class _HomepageState extends State<Homepage> {
           'Stocks',
           style: TextStyle(color: Colors.white),
         ),
-<<<<<<< HEAD
-=======
+
+
       leading: IconButton( 
       icon: const Icon(Icons.arrow_back, color: Colors.white),
       onPressed: (){
@@ -53,7 +54,7 @@ class _HomepageState extends State<Homepage> {
           builder: (context) => LoginPage()),);
       },
       ),
->>>>>>> 074d24093232d406712df09d11c664e3f18cc93e
+
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
       body: SingleChildScrollView(
