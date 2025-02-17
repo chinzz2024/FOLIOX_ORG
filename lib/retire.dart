@@ -11,9 +11,12 @@ class RetireEarly extends StatefulWidget {
 
 class _RetireEarlyState extends State<RetireEarly> {
   final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _currentAgeController = TextEditingController();
   String? _displayMessage;
   List<String> _rules = [];
   String? _financialStatus;
+  Color _statusColor = Colors.transparent;
+  List<String> _financialSuggestions = [];
 
   final Map<String, List<String>> _ageBasedRules = {
     '20-30': [
@@ -38,79 +41,125 @@ class _RetireEarlyState extends State<RetireEarly> {
     ],
   };
 
-  Future<Map<String, dynamic>?> _getUserFinancials() async {
-    String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (uid.isEmpty) return null;
+  Future<Map<String, dynamic>?> _fetchUserFinancials() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
 
-    DocumentSnapshot doc =
-        await FirebaseFirestore.instance.collection('planner').doc(uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('planner')
+        .doc(user.uid)
+        .get();
 
-    if (doc.exists && doc.data() != null) {
-      return doc.data() as Map<String, dynamic>;
+    if (doc.exists) {
+      return doc.data();
     }
     return null;
   }
 
-  void _submit() async {
-    final enteredAgeText = _ageController.text;
-    if (enteredAgeText.isEmpty) {
+  void _evaluateRetirementPlan() async {
+    final ageText = _ageController.text;
+    final currentAgeText = _currentAgeController.text;
+
+    if (ageText.isEmpty || currentAgeText.isEmpty) {
       setState(() {
-        _displayMessage = 'Please enter a valid age.';
+        _displayMessage = 'Please enter a valid age and current age.';
         _rules = [];
         _financialStatus = null;
+        _statusColor = Colors.transparent;
+        _financialSuggestions = [];
       });
       return;
     }
 
-    final enteredAge = int.tryParse(enteredAgeText);
-    if (enteredAge == null || enteredAge <= 0) {
+    final age = int.tryParse(ageText);
+    final currentAge = int.tryParse(currentAgeText);
+
+    if (age == null || age <= 0 || currentAge == null || currentAge <= 0) {
       setState(() {
-        _displayMessage = 'Please enter a valid age.';
+        _displayMessage = 'Please enter valid ages.';
         _rules = [];
         _financialStatus = null;
+        _statusColor = Colors.transparent;
+        _financialSuggestions = [];
       });
       return;
     }
 
-    String ageCategory;
-    if (enteredAge >= 20 && enteredAge <= 30) {
-      ageCategory = '20-30';
-    } else if (enteredAge >= 31 && enteredAge <= 40) {
-      ageCategory = '31-40';
-    } else if (enteredAge >= 41 && enteredAge <= 50) {
-      ageCategory = '41-50';
-    } else {
-      ageCategory = '51+';
-    }
-
-    final financialData = await _getUserFinancials();
+    final financialData = await _fetchUserFinancials();
     if (financialData == null) {
       setState(() {
-        _displayMessage = 'Could not fetch financial data.';
+        _displayMessage = 'Unable to fetch financial data.';
         _rules = [];
         _financialStatus = null;
+        _statusColor = Colors.transparent;
+        _financialSuggestions = [];
       });
       return;
     }
 
-    double income = (financialData['income'] as num?)?.toDouble() ?? 0.0;
-    double savings = (financialData['savings'] as num?)?.toDouble() ?? 0.0;
-    double expenditure = (financialData['expenditure'] as num?)?.toDouble() ?? 0.0;
-    double deduction = (financialData['deduction'] as num?)?.toDouble() ?? 0.0;
+    final income = (financialData['Income'] as num?)?.toDouble() ?? 0.0;
+    final savings = (financialData['Savings'] as num?)?.toDouble() ?? 0.0;
+    final expenditure = (financialData['Expenditure'] as num?)?.toDouble() ?? 0.0;
+    final deduction = (financialData['Deduction'] as num?)?.toDouble() ?? 0.0;
 
-    double needs = expenditure + deduction;
-    double wants = income * 0.30;
-    double expectedSavings = income * 0.20;
+    final needs = expenditure + deduction;
+    final expectedSavings = income * 0.20;
 
-    bool followsRule = savings >= expectedSavings;
+    final isNeedsWithinLimit = needs <= income * 0.50;
+    final isSavingsEnough = savings >= expectedSavings;
+
+    final followsRule = isNeedsWithinLimit && isSavingsEnough;
 
     setState(() {
-      _displayMessage = 'You want to retire at $enteredAge years.';
-      _rules = _ageBasedRules[ageCategory]!;
+      _displayMessage = 'You plan to retire at $age years.';
+      _rules = _ageBasedRules[_getAgeCategory(age)] ?? [];
       _financialStatus = followsRule
-          ? '✅ You are on track with the 50-30-20 rule!'
-          : '❌ You need to save at least ₹${expectedSavings.toStringAsFixed(2)} to follow the 50-30-20 rule.';
+          ? '✅ You are following the 50-30-20 rule!'
+          : '❌ You are not following the 50-30-20 rule. '
+              'Ensure your needs (₹${needs.toStringAsFixed(2)}) are ≤50% of income (₹${(income * 0.50).toStringAsFixed(2)}) '
+              'and savings (₹${savings.toStringAsFixed(2)}) are ≥20% of income (₹${expectedSavings.toStringAsFixed(2)}).';
+      _statusColor = followsRule ? Colors.green : Colors.red;
+
+      if (followsRule) {
+        _financialSuggestions = _getFinancialSuggestions(currentAge, age, income);
+      } else {
+        _financialSuggestions = [];
+      }
     });
+  }
+
+  List<String> _getFinancialSuggestions(int currentAge, int retirementAge, double income) {
+    final yearsToRetirement = retirementAge - currentAge;
+    final monthlySavings = income * 0.20 / 12; // 20% of income as monthly savings
+    final sipReturnRate = 0.12; // 12% annual return
+    final futureValue = _calculateSIPFutureValue(monthlySavings, sipReturnRate, yearsToRetirement);
+
+    return [
+      'Invest in a Systematic Investment Plan (SIP) with a 12% annual return.',
+      'Save ₹${monthlySavings.toStringAsFixed(2)} monthly for $yearsToRetirement years to accumulate ₹${futureValue.toStringAsFixed(2)}.',
+      'Diversify your portfolio with equity, debt, and gold investments.',
+      'Consider investing in a retirement-focused mutual fund or NPS (National Pension System).',
+      'Review your investment portfolio annually to ensure it aligns with your retirement goals.',
+    ];
+  }
+
+  double _calculateSIPFutureValue(double monthlySavings, double annualReturn, int years) {
+    final monthlyReturn = annualReturn / 12;
+    final months = years * 12;
+    double futureValue = 0;
+
+    for (int i = 0; i < months; i++) {
+      futureValue = (futureValue + monthlySavings) * (1 + monthlyReturn);
+    }
+
+    return futureValue;
+  }
+
+  String _getAgeCategory(int age) {
+    if (age >= 20 && age <= 30) return '20-30';
+    if (age >= 31 && age <= 40) return '31-40';
+    if (age >= 41 && age <= 50) return '41-50';
+    return '51+';
   }
 
   @override
@@ -123,9 +172,7 @@ class _RetireEarlyState extends State<RetireEarly> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
@@ -142,7 +189,39 @@ class _RetireEarlyState extends State<RetireEarly> {
             Row(
               children: [
                 const Text(
-                  "At what age do you want to retire:",
+                  "Current Age:",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 80,
+                  height: 40,
+                  child: TextField(
+                    controller: _currentAgeController,
+                    decoration: InputDecoration(
+                      suffixText: 'y',
+                      border: const OutlineInputBorder(),
+                      hintText: 'Age',
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 8,
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 15),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text(
+                  "Retirement Age:",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -173,7 +252,7 @@ class _RetireEarlyState extends State<RetireEarly> {
             const SizedBox(height: 24),
             Center(
               child: ElevatedButton(
-                onPressed: _submit,
+                onPressed: _evaluateRetirementPlan,
                 child: const Text(
                   'Submit',
                   style: TextStyle(fontSize: 16),
@@ -192,13 +271,23 @@ class _RetireEarlyState extends State<RetireEarly> {
               ),
             const SizedBox(height: 16),
             if (_financialStatus != null)
-              Text(
-                _financialStatus!,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: _financialStatus!.contains('✅') ? Colors.green : Colors.red,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.circle,
+                    color: _statusColor,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _financialStatus!,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: _statusColor,
+                    ),
+                  ),
+                ],
               ),
             const SizedBox(height: 16),
             if (_rules.isNotEmpty)
@@ -213,6 +302,21 @@ class _RetireEarlyState extends State<RetireEarly> {
             for (String rule in _rules)
               Text(
                 '- $rule',
+                style: const TextStyle(fontSize: 16),
+              ),
+            const SizedBox(height: 16),
+            if (_financialSuggestions.isNotEmpty)
+              const Text(
+                'Financial Planning Suggestions:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            const SizedBox(height: 8),
+            for (String suggestion in _financialSuggestions)
+              Text(
+                '- $suggestion',
                 style: const TextStyle(fontSize: 16),
               ),
           ],

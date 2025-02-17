@@ -1,200 +1,157 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'dart:math'; // Add this import for the 'pow()' function
 
-class DreamCar extends StatefulWidget {
-  const DreamCar({Key? key}) : super(key: key);
-
+class DreamcarPage extends StatefulWidget {
   @override
-  State<DreamCar> createState() => _DreamcarState();
+  _DreamcarPageState createState() => _DreamcarPageState();
 }
 
-class _DreamcarState extends State<DreamCar> {
+class _DreamcarPageState extends State<DreamcarPage> {
+  // Controllers
+  TextEditingController _targetAmountController = TextEditingController();
+  TextEditingController _currentSavingsController = TextEditingController();
+  TextEditingController _yearsToGoalController = TextEditingController();
+
+  // Variables for storing user input
+  double targetAmount = 0;
+  double loanAmount = 0;
+  double currentSavings = 0;
+  int yearsToGoal = 0;
+  bool isEMISelected = false;
+  bool showDownPaymentFields = false;
+  double interestRate = 0;
+  int loanTenure = 0;
+  double emi = 0;
+
+  // Calculate Monthly Savings Method
+  double calculateMonthlySavings() {
+    if (targetAmount > 0 && yearsToGoal > 0) {
+      return (targetAmount - currentSavings) / (yearsToGoal * 12);
+    }
+    return 0;
+  }
+
+  // Calculate Progress Method
+  double calculateProgress() {
+    if (targetAmount > 0) {
+      return (currentSavings / targetAmount) * 100;
+    }
+    return 0;
+  }
+
+  // Calculate EMI Method
+  void calculateEMI() {
+    if (loanAmount > 0 && interestRate > 0 && loanTenure > 0) {
+      double monthlyInterestRate = interestRate / 100 / 12;
+      double emiAmount = loanAmount *
+          monthlyInterestRate /
+          (1 - pow((1 + monthlyInterestRate), -loanTenure));
+      setState(() {
+        emi = emiAmount;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dream Car', style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        title: Text('Dream Car Calculator'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 30),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: <Widget>[
+            TextField(
+              controller: _targetAmountController,
+              decoration: InputDecoration(labelText: 'Target Amount'),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  targetAmount = double.tryParse(value) ?? 0;
+                });
+              },
+            ),
+            TextField(
+              controller: _currentSavingsController,
+              decoration: InputDecoration(labelText: 'Current Savings'),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  currentSavings = double.tryParse(value) ?? 0;
+                });
+              },
+            ),
+            TextField(
+              controller: _yearsToGoalController,
+              decoration: InputDecoration(labelText: 'Years to Goal'),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  yearsToGoal = int.tryParse(value) ?? 0;
+                });
+              },
+            ),
+            if (!isEMISelected && showDownPaymentFields) ...[
               TextField(
-                controller: _targetAmountController,
+                decoration: InputDecoration(labelText: 'Down Payment'),
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Target Amount (₹)',
-                  border: OutlineInputBorder(),
-                ),
+              ),
+            ],
+            SwitchListTile(
+              title: Text('EMI Option'),
+              value: isEMISelected,
+              onChanged: (bool value) {
+                setState(() {
+                  isEMISelected = value;
+                  showDownPaymentFields = !value;
+                });
+              },
+            ),
+            if (isEMISelected) ...[
+              TextField(
+                decoration: InputDecoration(labelText: 'Loan Amount'),
+                keyboardType: TextInputType.number,
                 onChanged: (value) {
                   setState(() {
-                    targetAmount = double.tryParse(value) ?? 0;
-                    loanAmount = targetAmount; // Sync loan amount with target amount
+                    loanAmount = double.tryParse(value) ?? 0;
                   });
+                  calculateEMI(); // Recalculate EMI on value change
                 },
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'How do you want to buy the car?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              TextField(
+                decoration: InputDecoration(labelText: 'Interest Rate (%)'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    interestRate = double.tryParse(value) ?? 0;
+                  });
+                  calculateEMI(); // Recalculate EMI on value change
+                },
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        isEMISelected = false; // Switch to Ready Cash
-                        showDownPaymentFields = true;
-                      });
-                    },
-                    child: const Text('Ready Cash'),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        isEMISelected = true; // Switch to EMI
-                        showDownPaymentFields = false;
-                      });
-                    },
-                    child: const Text('EMI'),
-                  ),
-                ],
+              TextField(
+                decoration: InputDecoration(labelText: 'Loan Tenure (Months)'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    loanTenure = int.tryParse(value) ?? 0;
+                  });
+                  calculateEMI(); // Recalculate EMI on value change
+                },
               ),
-              const SizedBox(height: 30),
-              // Display the Ready Cash fields when selected
-              if (!isEMISelected && showDownPaymentFields) ...[
-                TextField(
-                  controller: _currentSavingsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Savings (₹)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _yearsToGoalController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Years to Goal',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      currentSavings =
-                          double.tryParse(_currentSavingsController.text) ?? 0;
-                      yearsToGoal =
-                          int.tryParse(_yearsToGoalController.text) ?? 0;
-                    });
-                  },
-                  child: const Text('Save Plan'),
-                ),
-                const SizedBox(height: 20),
-                if (targetAmount > 0 && yearsToGoal > 0)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Monthly Savings Required: ₹${calculateMonthlySavings().toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Progress: ${calculateProgress().toStringAsFixed(2)}%',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-              ],
-              // Display EMI fields when EMI is selected
-              if (isEMISelected) ...[
-                const SizedBox(height: 20),
-                const Text(
-                  'Loan Amount (₹)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Slider(
-                  value: loanAmount,
-                  min: 50000,
-                  max: 1000000, // max slider value based on targetAmount
-                  divisions: 19,
-                  label: '₹${loanAmount.toStringAsFixed(0)}',
-                  onChanged: (double value) {
-                    setState(() {
-                      loanAmount = value;
-                    });
-                    calculateEMI(); // Recalculate EMI
-                  },
-                ),
-                Text('₹${loanAmount.toStringAsFixed(0)}'),
-                const SizedBox(height: 20),
-                const Text(
-                  'Interest Rate (%)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Slider(
-                  value: interestRate,
-                  min: 0,
-                  max: 20,
-                  divisions: 40,
-                  label: '${interestRate.toStringAsFixed(1)}%',
-                  onChanged: (double value) {
-                    setState(() {
-                      interestRate = value;
-                    });
-                    calculateEMI(); // Recalculate EMI
-                  },
-                ),
-                Text('${interestRate.toStringAsFixed(1)}%'),
-                const SizedBox(height: 20),
-                const Text(
-                  'Loan Tenure (Months)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Slider(
-                  value: loanTenure.toDouble(),
-                  min: 6,
-                  max: 72,
-                  divisions: 66,
-                  label: '$loanTenure months',
-                  onChanged: (double value) {
-                    setState(() {
-                      loanTenure = value.toInt();
-                    });
-                    calculateEMI(); // Recalculate EMI
-                  },
-                ),
-                Text('$loanTenure months'),
-                const SizedBox(height: 20),
-                // Display the EMI result
-                if (emi > 0)
-                  Center(
-                    child: Text(
-                      'EMI: ₹${emi.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-              ],
             ],
-          ),
+            Text('Monthly Savings Required: ₹${calculateMonthlySavings().toStringAsFixed(2)}'),
+            Text('Progress: ${calculateProgress().toStringAsFixed(2)}%'),
+            if (isEMISelected) ...[
+              Text('EMI: ₹${emi.toStringAsFixed(2)}'),
+            ],
+            ElevatedButton(
+              onPressed: () {
+                // Handle the final calculations or navigation
+              },
+              child: Text('Calculate'),
+            ),
+          ],
         ),
       ),
     );
