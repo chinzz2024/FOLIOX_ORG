@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'option.dart';
+
 import 'calculation_page.dart';
 
 class IncomePage extends StatefulWidget {
