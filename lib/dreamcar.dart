@@ -5,10 +5,10 @@ class DreamCar extends StatefulWidget {
   const DreamCar({Key? key}) : super(key: key);
 
   @override
-  State<DreamCar> createState() => _DreamCarState();
+  State<DreamCar> createState() => _DreamcarState();
 }
 
-class _DreamcarState extends State<Dreamcar> {
+class _DreamcarState extends State<DreamCar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
