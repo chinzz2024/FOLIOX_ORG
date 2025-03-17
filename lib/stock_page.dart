@@ -126,7 +126,7 @@ class _StockDataPageState extends State<StockDataPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Invest in Stock'),
+          title: const Text('Invest in Stock',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
           content: TextField(
             controller: sharesController,
             keyboardType: TextInputType.number,

@@ -63,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            title: const Text('Profile', style: TextStyle(color: Colors.white)),
+            title: const Text('Profile', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {

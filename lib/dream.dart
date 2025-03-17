@@ -79,7 +79,7 @@ class _DreamHomeState extends State<DreamHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dream Home', style: TextStyle(color: Colors.white)),
+        title: const Text('Dream Home',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),

@@ -38,10 +38,10 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF2F6FC), // Soft Blue Background
+      color: const Color.fromARGB(255, 179, 222, 249), // ✅ Full-page background
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.transparent, // ✅ Avoids white color bleeding
           appBar: AppBar(
             title: const Text(
               'Stocks',
@@ -56,7 +56,7 @@ class _HomepageState extends State<Homepage> {
                 );
               },
             ),
-            backgroundColor: const Color(0xFF0C0625), // Deep Navy AppBar
+            backgroundColor: const Color.fromARGB(255, 12, 6, 37),
           ),
           body: Column(
             children: [
@@ -108,10 +108,10 @@ class _HomepageState extends State<Homepage> {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2C2C2C), // Dark Gray Text
+                                color: Color.fromARGB(255, 0, 0, 0), // ✅ Text visible on blue bg
                               ),
                             ),
-                            const SizedBox(height: 85),
+                            const SizedBox(height: 85), // Adjusted spacing
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -151,7 +151,6 @@ class _HomepageState extends State<Homepage> {
           ),
 
           bottomNavigationBar: BottomNavigationBar(
-            backgroundColor: const Color(0xFFEAEAEA), // Light Gray Background
             currentIndex: _currentIndex,
             onTap: _onBottomNavTapped,
             items: const [
@@ -168,7 +167,7 @@ class _HomepageState extends State<Homepage> {
                 label: 'Profile',
               ),
             ],
-            selectedItemColor: const Color(0xFF007AFF), // Bright Blue Selected Item
+            selectedItemColor: Colors.teal,
             unselectedItemColor: Colors.grey,
           ),
         ),
@@ -186,14 +185,11 @@ class _HomepageState extends State<Homepage> {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: const Color(0xFF003BFF), // Royal Blue Icons
+            backgroundColor: const Color.fromARGB(255, 0, 157, 255),
             child: Icon(icon, color: Colors.white, size: 30),
           ),
           const SizedBox(height: 5),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF2C2C2C)), // Dark Gray Text
-          ),
+          Text(label, style: const TextStyle(fontSize: 14, color: Color.fromARGB(255, 0, 0, 0))), // ✅ White text for visibility
         ],
       ),
     );

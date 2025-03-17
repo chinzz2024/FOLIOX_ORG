@@ -56,7 +56,7 @@ class _DreamcarPageState extends State<DreamcarPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dream Car Calculator'),
+        title: Text('Dream Car Calculator',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
