@@ -19,46 +19,36 @@ class _ProfilePageState extends State<ProfilePage> {
   String? panNumber;
   String? phoneNumber;
   String? portfolioValue;
-  bool isLoading = true; // To show loading indicator
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Fetch user data when the page loads
     getUserData();
   }
 
   Future<void> getUserData() async {
     try {
-      // Get the current user ID
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        String userId = user.uid; // Get the current user's UID
-
-        // Fetch user data from Firestore using userId as document ID
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
-            .doc(userId) // Document ID is the userId
+            .doc(user.uid)
             .get();
 
         if (userDoc.exists) {
-          // If document exists, fetch and set the user data
           setState(() {
             fullName = userDoc['fullName'];
             email = userDoc['email'];
             panNumber = userDoc['panNumber'];
             phoneNumber = userDoc['phoneNumber'];
             portfolioValue = userDoc['portfolioValue'];
-            isLoading = false; // Stop loading once data is fetched
-          });
-        } else {
-          setState(() {
-            isLoading = false;
           });
         }
       }
     } catch (e) {
       print('Error fetching user data: $e');
+    } finally {
       setState(() {
         isLoading = false;
       });
@@ -67,50 +57,53 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(color: Colors.white),
+    return Container(
+      color: const Color(0xFFF2F6FC), // Soft Blue Background
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Profile', style: TextStyle(color: Colors.white)),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Homepage()),
+                );
+              },
+            ),
+            backgroundColor: const Color(0xFF0C0625), // Deep Navy AppBar
+          ),
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : userDataUI(),
+          bottomNavigationBar: BottomNavigationBar(
+            backgroundColor: const Color(0xFFEAEAEA),
+            currentIndex: _currentIndex,
+            onTap: _onBottomNavTapped,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.trending_up),
+                label: 'Stocks',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.savings),
+                label: 'Planner',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+            selectedItemColor: const Color(0xFF007AFF), // Bright Blue
+            unselectedItemColor: Colors.grey,
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Homepage()),
-            );
-          },
-        ),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : userDataUI(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onBottomNavTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.trending_up),
-            label: 'Stocks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.savings),
-            label: 'Planner',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
       ),
     );
   }
 
-  // User Data UI
   Widget userDataUI() {
     return SingleChildScrollView(
       child: Padding(
@@ -119,52 +112,32 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            // Profile Picture
             CircleAvatar(
               radius: 60,
-              backgroundImage: AssetImage(
-                  'assets/profile_placeholder.png'), // Placeholder image
+              backgroundImage: AssetImage('assets/profile_placeholder.png'),
               backgroundColor: Colors.grey[200],
             ),
             const SizedBox(height: 20),
-            // Name and Email
             Text(
-              fullName ??
-                  'Loading...', // Display "Loading..." if fullName is null
+              fullName ?? 'Loading...',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: Color(0xFF2C2C2C),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              email ?? 'Loading...', // Display "Loading..." if email is null
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              email ?? 'Loading...',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 20),
             Divider(color: Colors.grey[300], thickness: 1),
             const SizedBox(height: 20),
-            ListTile(
-              leading:
-                  const Icon(Icons.account_balance_wallet, color: Colors.blue),
-              title: const Text('Portfolio Value'),
-              subtitle: Text(portfolioValue ?? 'Loading...'), // Fallback text
-            ),
-            const SizedBox(height: 10),
-            ListTile(
-              leading: const Icon(Icons.phone, color: Colors.green),
-              title: const Text('Phone Number'),
-              subtitle: Text(phoneNumber ?? 'Loading...'), // Fallback text
-            ),
-            const SizedBox(height: 10),
-            ListTile(
-              leading: const Icon(Icons.credit_card, color: Colors.orange),
-              title: const Text('PAN Number'),
-              subtitle: Text(panNumber ?? 'Loading...'), // Fallback text
-            ),
+            infoTile(Icons.account_balance_wallet, 'Portfolio Value',
+                portfolioValue),
+            infoTile(Icons.phone, 'Phone Number', phoneNumber),
+            infoTile(Icons.credit_card, 'PAN Number', panNumber),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
@@ -193,7 +166,17 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget infoTile(IconData icon, String title, String? subtitle) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blue),
+      title: Text(title),
+      subtitle: Text(subtitle ?? 'Loading...'),
+    );
+  }
+
   void _onBottomNavTapped(int index) {
+    if (index == _currentIndex) return;
+
     setState(() {
       _currentIndex = index;
     });
@@ -207,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (index == 1) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => PlannerPage()),
+        MaterialPageRoute(builder: (context) => const PlannerPage()),
       );
     }
   }
