@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'calculation_page.dart'; // Import the CalculationPage
 
 class SummaryPage extends StatefulWidget {
   const SummaryPage({super.key});
@@ -164,6 +165,23 @@ class _SummaryPageState extends State<SummaryPage> {
               const SizedBox(height: 10),
               ..._buildRecommendations(needsPercentage, wantsPercentage),
             ],
+
+            // Set Your Goal Button
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalculationPage(savings: 0.0),
+                    ),
+                  );
+                },
+                child: const Text('Set Your Goal'),
+              ),
+            ),
+            const SizedBox(height: 20), // Add some space at the bottom
           ],
         ),
       ),
