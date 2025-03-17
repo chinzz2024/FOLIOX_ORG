@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'calculation_page.dart'; // Import the CalculationPage
+import 'summary_page.dart';
 
 class IncomePage extends StatefulWidget {
   const IncomePage({super.key});
@@ -65,54 +66,84 @@ class _IncomePageState extends State<IncomePage> {
     publicProvidentFundController.dispose();
     super.dispose();
   }
+Future<void> _saveToFirestore() async {
+  String? userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return;
 
-  Future<void> _saveToFirestore() async {
-    String? userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+  // Calculate total income
+  double totalIncome = (double.tryParse(baseSalaryController.text) ?? 0) +
+      (double.tryParse(dearnessAllowanceController.text) ?? 0) +
+      (double.tryParse(houseRentAllowanceController.text) ?? 0) +
+      (double.tryParse(transportAllowanceController.text) ?? 0);
 
-    try {
-      await FirebaseFirestore.instance.collection('financialPlanner').doc(userId).set({
-        'Income': {
-          'Base Salary': double.tryParse(baseSalaryController.text) ?? 0,
-          'Dearness Allowance': double.tryParse(dearnessAllowanceController.text) ?? 0,
-          'House Rent Allowance': double.tryParse(houseRentAllowanceController.text) ?? 0,
-          'Transport Allowance': double.tryParse(transportAllowanceController.text) ?? 0,
-        },
-        'Essential Expenses': {
-          'Rent/Mortgage': double.tryParse(rentMortgageController.text) ?? 0,
-          'Food & Groceries': double.tryParse(foodGroceriesController.text) ?? 0,
-          'Insurance': double.tryParse(insuranceController.text) ?? 0,
-          'Medical Expenses': double.tryParse(medicalExpensesController.text) ?? 0,
-          'Loan Repayments': double.tryParse(loanRepaymentsController.text) ?? 0,
-        },
-        'Optional Expenses': {
-          'Dining Out': double.tryParse(diningOutController.text) ?? 0,
-          'Entertainment': double.tryParse(entertainmentController.text) ?? 0,
-          'Travel & Vacations': double.tryParse(travelVacationsController.text) ?? 0,
-          'Shopping': double.tryParse(shoppingController.text) ?? 0,
-          'Fitness & Gym': double.tryParse(fitnessGymController.text) ?? 0,
-          'Hobbies & Leisure': double.tryParse(hobbiesLeisureController.text) ?? 0,
-        },
-        'Assets': {
-          'Fixed Deposits': double.tryParse(fixedDepositsController.text) ?? 0,
-          'Recurring Deposits': double.tryParse(recurringDepositsController.text) ?? 0,
-          'Savings Account': double.tryParse(savingsAccountController.text) ?? 0,
-          'Current Account': double.tryParse(currentAccountController.text) ?? 0,
-          'Employee Provident Fund': double.tryParse(employeeProvidentFundController.text) ?? 0,
-          'Public Provident Fund': double.tryParse(publicProvidentFundController.text) ?? 0,
-        },
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+  // Calculate total essential expenses
+  double totalEssentialExpenses = (double.tryParse(rentMortgageController.text) ?? 0) +
+      (double.tryParse(foodGroceriesController.text) ?? 0) +
+      (double.tryParse(insuranceController.text) ?? 0) +
+      (double.tryParse(medicalExpensesController.text) ?? 0) +
+      (double.tryParse(loanRepaymentsController.text) ?? 0);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data saved successfully!')),
-      );
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save data: $error')),
-      );
-    }
+  // Calculate total optional expenses
+  double totalOptionalExpenses = (double.tryParse(diningOutController.text) ?? 0) +
+      (double.tryParse(entertainmentController.text) ?? 0) +
+      (double.tryParse(travelVacationsController.text) ?? 0) +
+      (double.tryParse(shoppingController.text) ?? 0) +
+      (double.tryParse(fitnessGymController.text) ?? 0) +
+      (double.tryParse(hobbiesLeisureController.text) ?? 0);
+
+  // Calculate savings
+  double savings = totalIncome - (totalEssentialExpenses + totalOptionalExpenses);
+
+  try {
+    // Save financial data to Firestore under the 'financialPlanner' collection
+    await FirebaseFirestore.instance.collection('financialPlanner').doc(userId).set({
+      'Income': {
+        'Base Salary': double.tryParse(baseSalaryController.text) ?? 0,
+        'Dearness Allowance': double.tryParse(dearnessAllowanceController.text) ?? 0,
+        'House Rent Allowance': double.tryParse(houseRentAllowanceController.text) ?? 0,
+        'Transport Allowance': double.tryParse(transportAllowanceController.text) ?? 0,
+      },
+      'Essential Expenses': {
+        'Rent/Mortgage': double.tryParse(rentMortgageController.text) ?? 0,
+        'Food & Groceries': double.tryParse(foodGroceriesController.text) ?? 0,
+        'Insurance': double.tryParse(insuranceController.text) ?? 0,
+        'Medical & Healthcare': double.tryParse(medicalExpensesController.text) ?? 0,
+        'Loan Repayments': double.tryParse(loanRepaymentsController.text) ?? 0,
+      },
+      'Optional Expenses': {
+        'Dining Out': double.tryParse(diningOutController.text) ?? 0,
+        'Entertainment': double.tryParse(entertainmentController.text) ?? 0,
+        'Travel & Vacations': double.tryParse(travelVacationsController.text) ?? 0,
+        'Shopping': double.tryParse(shoppingController.text) ?? 0,
+        'Fitness & Gym': double.tryParse(fitnessGymController.text) ?? 0,
+        'Hobbies & Leisure': double.tryParse(hobbiesLeisureController.text) ?? 0,
+      },
+      'Assets': {
+        'Fixed Deposits': double.tryParse(fixedDepositsController.text) ?? 0,
+        'Recurring Deposits': double.tryParse(recurringDepositsController.text) ?? 0,
+        'Savings Account': double.tryParse(savingsAccountController.text) ?? 0,
+        'Current Account': double.tryParse(currentAccountController.text) ?? 0,
+        'Employee Provident Fund': double.tryParse(employeeProvidentFundController.text) ?? 0,
+        'Public Provident Fund': double.tryParse(publicProvidentFundController.text) ?? 0,
+      },
+      'Savings': {
+        'income': totalIncome,
+        'essentialExpenses': totalEssentialExpenses,
+        'optionalExpenses': totalOptionalExpenses,
+        'savings': savings,
+      },
+      'timestamp': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)); // Merge to avoid overwriting other fields
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Data saved successfully!')),
+    );
+  } catch (error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save data: $error')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -164,16 +195,18 @@ class _IncomePageState extends State<IncomePage> {
                     child: const Text('Update Savings'),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CalculationPage(savings: 0.0),),
-                      );
-                    },
-                    child: const Text('Plan'),
-                  ),
-                ],
+               ElevatedButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SummaryPage(),
+      ),
+    );
+  },
+  child: const Text('Plan'),
+),
+            ],
               ),
             ),
           ],
