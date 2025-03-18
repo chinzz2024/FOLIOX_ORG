@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'calculation_page.dart'; // Import the CalculationPage
+import 'dart:math'; // For pow() function
 
 class SummaryPage extends StatefulWidget {
   const SummaryPage({super.key});
@@ -17,6 +19,14 @@ class _SummaryPageState extends State<SummaryPage> {
   bool isLoading = true;
   Map<String, double> essentialExpensesMap = {};
   Map<String, double> optionalExpensesMap = {};
+
+  // Marriage-specific variables
+  String? selectedGoal;
+  double marriageBudget = 0;
+  int marriageYears = 0;
+  String inflationResult = '';
+  String sipSuggestion = '';
+  String fdSuggestion = '';
 
   @override
   void initState() {
@@ -44,15 +54,23 @@ class _SummaryPageState extends State<SummaryPage> {
               (snapshot['Income']?['Transport Allowance'] ?? 0);
 
           // Fetch essential expenses
-          essentialExpensesMap = Map<String, double>.from(snapshot['Essential Expenses']);
-          essentialExpenses = essentialExpensesMap.values.reduce((a, b) => a + b);
+          essentialExpensesMap = Map<String, double>.from(snapshot['Essential Expenses'] ?? {});
+          essentialExpenses = essentialExpensesMap.values.fold(0, (a, b) => a + b);
 
           // Fetch optional expenses
-          optionalExpensesMap = Map<String, double>.from(snapshot['Optional Expenses']);
-          optionalExpenses = optionalExpensesMap.values.reduce((a, b) => a + b);
+          optionalExpensesMap = Map<String, double>.from(snapshot['Optional Expenses'] ?? {});
+          optionalExpenses = optionalExpensesMap.values.fold(0, (a, b) => a + b);
 
           // Calculate savings
           savings = income - (essentialExpenses + optionalExpenses);
+
+          // Fetch goal and marriage-specific details
+          selectedGoal = snapshot['Goal'];
+          if (selectedGoal == 'Marriage') {
+            marriageBudget = snapshot['Marriage Details']?['Total Estimated Budget'] ?? 0;
+            marriageYears = snapshot['Marriage Details']?['Total Years to Goal'] ?? 0;
+            _calculateMarriageDetails(); // Calculate marriage-specific suggestions
+          }
 
           isLoading = false;
         });
@@ -71,6 +89,27 @@ class _SummaryPageState extends State<SummaryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to fetch data: $error')),
       );
+    }
+  }
+
+  // Calculate marriage-specific details
+  void _calculateMarriageDetails() {
+    if (marriageBudget > 0 && marriageYears > 0) {
+      // Inflation Calculation (7% inflation rate)
+      double inflatedAmount = marriageBudget * pow(1.07, marriageYears);
+      inflationResult = "You would need ₹${inflatedAmount.toStringAsFixed(2)} for your marriage in $marriageYears years.";
+
+      // SIP Calculation (Assuming 12% annual return, monthly investment of 10k)
+      double sipFutureValue = 10000 * ((pow(1 + 0.01, marriageYears * 12) - 1) / 0.01) * (1 + 0.01);
+      sipSuggestion = "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹${sipFutureValue.toStringAsFixed(2)} in $marriageYears years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
+
+      // FD Calculation (Assuming 7% annual return)
+      double fdFutureValue = savings * pow(1.07, marriageYears);
+      fdSuggestion = "Placing your current savings of ₹${savings.toStringAsFixed(2)} in an FD at 7% annual return would grow to ₹${fdFutureValue.toStringAsFixed(2)} in $marriageYears years.";
+    } else {
+      inflationResult = '';
+      sipSuggestion = '';
+      fdSuggestion = '';
     }
   }
 
@@ -154,6 +193,23 @@ class _SummaryPageState extends State<SummaryPage> {
             _buildRuleRow('Wants (30%)', wantsPercentage, 30),
             _buildRuleRow('Savings (20%)', savingsPercentage, 20),
 
+            // Marriage-specific details
+            if (selectedGoal == 'Marriage') ...[
+              const SizedBox(height: 20),
+              const Text(
+                'Marriage Planning:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              if (inflationResult.isNotEmpty)
+                Text(inflationResult, style: const TextStyle(fontSize: 16, color: Colors.red)),
+              if (sipSuggestion.isNotEmpty)
+                Text(sipSuggestion, style: const TextStyle(fontSize: 16, color: Colors.green)),
+              if (fdSuggestion.isNotEmpty)
+                Text(fdSuggestion, style: const TextStyle(fontSize: 16, color: Colors.blue)),
+              const SizedBox(height: 20),
+            ],
+
             // Recommendations
             if (!isFollowingRule) ...[
               const SizedBox(height: 20),
@@ -164,6 +220,23 @@ class _SummaryPageState extends State<SummaryPage> {
               const SizedBox(height: 10),
               ..._buildRecommendations(needsPercentage, wantsPercentage),
             ],
+
+            // Set Your Goal Button
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalculationPage(savings: 0.0),
+                    ),
+                  );
+                },
+                child: const Text('Set Your Goal'),
+              ),
+            ),
+            const SizedBox(height: 20), // Add some space at the bottom
           ],
         ),
       ),
