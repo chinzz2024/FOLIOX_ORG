@@ -237,6 +237,23 @@ class _SummaryPageState extends State<SummaryPage> {
               ),
             ),
             const SizedBox(height: 20), // Add some space at the bottom
+
+            // Set Your Goal Button
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalculationPage(savings: 0.0),
+                    ),
+                  );
+                },
+                child: const Text('Set Your Goal'),
+              ),
+            ),
+            const SizedBox(height: 20), // Add some space at the bottom
           ],
         ),
       ),
