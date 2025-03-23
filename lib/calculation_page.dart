@@ -166,7 +166,7 @@ class CalculationPage extends StatelessWidget {
 final List<Map<String, dynamic>> goalDetails = [
   {'title': 'Retire early', 'imagePath': 'assets/retire.png', 'page': RetireEarly()},
   {'title': 'Emergency fund', 'imagePath': 'assets/emergency.png', 'page': EmergencyFund()},
-  {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page': DreamHome()},
+  {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page':DreamHomeScreen()},
   {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamcarPage()},
   {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
 ];
