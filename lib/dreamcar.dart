@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'dart:math'; // Add this import for the 'pow()' function
 
 class DreamcarPage extends StatefulWidget {
+  const DreamcarPage({super.key});
+
   @override
   _DreamcarPageState createState() => _DreamcarPageState();
 }
 
 class _DreamcarPageState extends State<DreamcarPage> {
   // Controllers
-  TextEditingController _targetAmountController = TextEditingController();
-  TextEditingController _currentSavingsController = TextEditingController();
-  TextEditingController _yearsToGoalController = TextEditingController();
+  final TextEditingController _targetAmountController = TextEditingController();
+  final TextEditingController _currentSavingsController = TextEditingController();
+  final TextEditingController _yearsToGoalController = TextEditingController();
 
   // Variables for storing user input
   double targetAmount = 0;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class DreamHome extends StatefulWidget {
-  const DreamHome({Key? key}) : super(key: key);
+  const DreamHome({super.key});
 
   @override
   State<DreamHome> createState() => _DreamHomeState();

@@ -38,7 +38,7 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color.fromARGB(255, 179, 222, 249), // ✅ Full-page background
+      color: const Color.fromARGB(255, 199, 230, 238), // ✅ Full-page background
       child: SafeArea(
         child: Scaffold(
           backgroundColor: Colors.transparent, // ✅ Avoids white color bleeding
@@ -185,7 +185,7 @@ class _HomepageState extends State<Homepage> {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: const Color.fromARGB(255, 0, 157, 255),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
             child: Icon(icon, color: Colors.white, size: 30),
           ),
           const SizedBox(height: 5),
