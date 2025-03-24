@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'calculation_page.dart'; // Import the CalculationPage
+import 'calculation_page.dart';
 import 'summary_page.dart';
 
 class IncomePage extends StatefulWidget {
@@ -12,52 +12,67 @@ class IncomePage extends StatefulWidget {
 }
 
 class _IncomePageState extends State<IncomePage> {
-  // Income Fields
+  // Controllers for all fields
   final TextEditingController baseSalaryController = TextEditingController();
-  final TextEditingController dearnessAllowanceController = TextEditingController();
-  final TextEditingController houseRentAllowanceController = TextEditingController();
-  final TextEditingController transportAllowanceController = TextEditingController();
+  final TextEditingController dearnessAllowanceController =
+      TextEditingController();
+  final TextEditingController houseRentAllowanceController =
+      TextEditingController();
+  final TextEditingController transportAllowanceController =
+      TextEditingController();
 
   // Essential Expenses
   final TextEditingController rentMortgageController = TextEditingController();
   final TextEditingController foodGroceriesController = TextEditingController();
   final TextEditingController insuranceController = TextEditingController();
-  final TextEditingController medicalExpensesController = TextEditingController();
-  final TextEditingController loanRepaymentsController = TextEditingController();
+  final TextEditingController medicalExpensesController =
+      TextEditingController();
+  final TextEditingController loanRepaymentsController =
+      TextEditingController();
 
   // Optional Expenses
   final TextEditingController diningOutController = TextEditingController();
   final TextEditingController entertainmentController = TextEditingController();
-  final TextEditingController travelVacationsController = TextEditingController();
+  final TextEditingController travelVacationsController =
+      TextEditingController();
   final TextEditingController shoppingController = TextEditingController();
   final TextEditingController fitnessGymController = TextEditingController();
-  final TextEditingController hobbiesLeisureController = TextEditingController();
+  final TextEditingController hobbiesLeisureController =
+      TextEditingController();
 
   // Assets
   final TextEditingController fixedDepositsController = TextEditingController();
-  final TextEditingController recurringDepositsController = TextEditingController();
-  final TextEditingController savingsAccountController = TextEditingController();
-  final TextEditingController currentAccountController = TextEditingController();
-  final TextEditingController employeeProvidentFundController = TextEditingController();
-  final TextEditingController publicProvidentFundController = TextEditingController();
+  final TextEditingController recurringDepositsController =
+      TextEditingController();
+  final TextEditingController savingsAccountController =
+      TextEditingController();
+  final TextEditingController currentAccountController =
+      TextEditingController();
+  final TextEditingController employeeProvidentFundController =
+      TextEditingController();
+  final TextEditingController publicProvidentFundController =
+      TextEditingController();
 
-  // Goal Selection
-  String? selectedGoal;
-
-  // Marriage-specific fields
-  final TextEditingController marriageBudgetController = TextEditingController();
-  final TextEditingController marriageYearsController = TextEditingController();
-
-  final List<String> goals = [
+  // Goals
+  final List<String> availableGoals = [
     'Retirement',
     'Dream Car',
     'Dream Home',
     'Marriage',
     'Emergency Fund',
   ];
+  final Map<String, TextEditingController> retirementControllers = {
+    'currentAge': TextEditingController(),
+    'retirementAge': TextEditingController(),
+  };
+
+  List<Map<String, dynamic>> selectedGoals = [];
+  final Map<String, TextEditingController> goalBudgetControllers = {};
+  final Map<String, TextEditingController> goalYearsControllers = {};
 
   @override
   void dispose() {
+    // Dispose all controllers
     baseSalaryController.dispose();
     dearnessAllowanceController.dispose();
     houseRentAllowanceController.dispose();
@@ -79,138 +94,178 @@ class _IncomePageState extends State<IncomePage> {
     currentAccountController.dispose();
     employeeProvidentFundController.dispose();
     publicProvidentFundController.dispose();
-    marriageBudgetController.dispose();
-    marriageYearsController.dispose();
+
+    // Dispose goal controllers
+    for (var controller in goalBudgetControllers.values) {
+      controller.dispose();
+    }
+    for (var controller in goalYearsControllers.values) {
+      controller.dispose();
+    }
+
+    for (var controller in retirementControllers.values) {
+      controller.dispose();
+    }
+
     super.dispose();
   }
 
+  void _addNewGoal() {
+    setState(() {
+      // Add a new goal with empty selection
+      selectedGoals.add({'goal': null});
+    });
+  }
+
+  void _removeGoal(int index) {
+    setState(() {
+      // Make sure index is valid
+      if (index < 0 || index >= selectedGoals.length) return;
+
+      // Remove controllers for this goal
+      final goalData = selectedGoals[index];
+      final String? goal = goalData['goal'] as String?;
+      if (goal != null) {
+        // Only remove controllers if they exist
+        if (goalBudgetControllers.containsKey(goal)) {
+          goalBudgetControllers[goal]?.dispose();
+          goalBudgetControllers.remove(goal);
+        }
+        if (goalYearsControllers.containsKey(goal)) {
+          goalYearsControllers[goal]?.dispose();
+          goalYearsControllers.remove(goal);
+        }
+      }
+
+      // Remove the goal from the list
+      selectedGoals.removeAt(index);
+    });
+  }
+
+void _updateGoal(int index, String? newGoal) {
+  setState(() {
+    final oldGoal = selectedGoals[index]['goal'];
+
+    if (oldGoal != null && oldGoal != newGoal) {
+      // Preserve old goal data before removal
+      String? oldBudget = goalBudgetControllers[oldGoal]?.text;
+      String? oldYears = goalYearsControllers[oldGoal]?.text;
+      String? oldCurrentAge = retirementControllers['currentAge']?.text;
+      String? oldRetirementAge = retirementControllers['retirementAge']?.text;
+
+      // Remove old goal controllers only if switching goals
+      goalBudgetControllers.remove(oldGoal);
+      goalYearsControllers.remove(oldGoal);
+      retirementControllers.remove(oldGoal);
+
+      // Assign the old values to the new goal if applicable
+      if (newGoal != null) {
+        goalBudgetControllers.putIfAbsent(
+            newGoal, () => TextEditingController(text: oldBudget));
+        goalYearsControllers.putIfAbsent(
+            newGoal, () => TextEditingController(text: oldYears));
+
+        if (newGoal == 'Retirement') {
+          retirementControllers.putIfAbsent(
+              'currentAge', () => TextEditingController(text: oldCurrentAge));
+          retirementControllers.putIfAbsent(
+              'retirementAge', () => TextEditingController(text: oldRetirementAge));
+        }
+      }
+    }
+
+    selectedGoals[index]['goal'] = newGoal;
+  });
+}
 Future<void> _saveToFirestore() async {
   String? userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) return;
 
-  // Create a map to store only the fields that have been entered by the user
-  Map<String, dynamic> data = {};
+  // Income details
+  Map<String, dynamic> incomeData = {
+    'baseSalary': double.tryParse(baseSalaryController.text) ?? 0,
+    'dearnessAllowance': double.tryParse(dearnessAllowanceController.text) ?? 0,
+    'houseRentAllowance': double.tryParse(houseRentAllowanceController.text) ?? 0,
+    'transportAllowance': double.tryParse(transportAllowanceController.text) ?? 0,
+  };
 
-  // Add Income fields if they are not empty
-  if (baseSalaryController.text.isNotEmpty) {
-    data['Income'] = {
-      'Base Salary': double.tryParse(baseSalaryController.text),
-    };
-  }
-  if (dearnessAllowanceController.text.isNotEmpty) {
-    data['Income'] ??= {};
-    data['Income']!['Dearness Allowance'] = double.tryParse(dearnessAllowanceController.text);
-  }
-  if (houseRentAllowanceController.text.isNotEmpty) {
-    data['Income'] ??= {};
-    data['Income']!['House Rent Allowance'] = double.tryParse(houseRentAllowanceController.text);
-  }
-  if (transportAllowanceController.text.isNotEmpty) {
-    data['Income'] ??= {};
-    data['Income']!['Transport Allowance'] = double.tryParse(transportAllowanceController.text);
-  }
+  // Essential expenses
+  Map<String, dynamic> essentialExpensesData = {
+    'rentMortgage': double.tryParse(rentMortgageController.text) ?? 0,
+    'foodGroceries': double.tryParse(foodGroceriesController.text) ?? 0,
+    'insurance': double.tryParse(insuranceController.text) ?? 0,
+    'medicalExpenses': double.tryParse(medicalExpensesController.text) ?? 0,
+    'loanRepayments': double.tryParse(loanRepaymentsController.text) ?? 0,
+  };
 
-  // Add Essential Expenses fields if they are not empty
-  if (rentMortgageController.text.isNotEmpty) {
-    data['Essential Expenses'] = {
-      'Rent/Mortgage': double.tryParse(rentMortgageController.text),
-    };
-  }
-  if (foodGroceriesController.text.isNotEmpty) {
-    data['Essential Expenses'] ??= {};
-    data['Essential Expenses']!['Food & Groceries'] = double.tryParse(foodGroceriesController.text);
-  }
-  if (insuranceController.text.isNotEmpty) {
-    data['Essential Expenses'] ??= {};
-    data['Essential Expenses']!['Insurance'] = double.tryParse(insuranceController.text);
-  }
-  if (medicalExpensesController.text.isNotEmpty) {
-    data['Essential Expenses'] ??= {};
-    data['Essential Expenses']!['Medical & Healthcare'] = double.tryParse(medicalExpensesController.text);
-  }
-  if (loanRepaymentsController.text.isNotEmpty) {
-    data['Essential Expenses'] ??= {};
-    data['Essential Expenses']!['Loan Repayments'] = double.tryParse(loanRepaymentsController.text);
-  }
+  // Optional expenses
+  Map<String, dynamic> optionalExpensesData = {
+    'diningOut': double.tryParse(diningOutController.text) ?? 0,
+    'entertainment': double.tryParse(entertainmentController.text) ?? 0,
+    'travelVacations': double.tryParse(travelVacationsController.text) ?? 0,
+    'shopping': double.tryParse(shoppingController.text) ?? 0,
+    'fitnessGym': double.tryParse(fitnessGymController.text) ?? 0,
+    'hobbiesLeisure': double.tryParse(hobbiesLeisureController.text) ?? 0,
+  };
 
-  // Add Optional Expenses fields if they are not empty
-  if (diningOutController.text.isNotEmpty) {
-    data['Optional Expenses'] = {
-      'Dining Out': double.tryParse(diningOutController.text),
-    };
-  }
-  if (entertainmentController.text.isNotEmpty) {
-    data['Optional Expenses'] ??= {};
-    data['Optional Expenses']!['Entertainment'] = double.tryParse(entertainmentController.text);
-  }
-  if (travelVacationsController.text.isNotEmpty) {
-    data['Optional Expenses'] ??= {};
-    data['Optional Expenses']!['Travel & Vacations'] = double.tryParse(travelVacationsController.text);
-  }
-  if (shoppingController.text.isNotEmpty) {
-    data['Optional Expenses'] ??= {};
-    data['Optional Expenses']!['Shopping'] = double.tryParse(shoppingController.text);
-  }
-  if (fitnessGymController.text.isNotEmpty) {
-    data['Optional Expenses'] ??= {};
-    data['Optional Expenses']!['Fitness & Gym'] = double.tryParse(fitnessGymController.text);
-  }
-  if (hobbiesLeisureController.text.isNotEmpty) {
-    data['Optional Expenses'] ??= {};
-    data['Optional Expenses']!['Hobbies & Leisure'] = double.tryParse(hobbiesLeisureController.text);
-  }
+  // Assets
+  Map<String, dynamic> assetsData = {
+    'fixedDeposits': double.tryParse(fixedDepositsController.text) ?? 0,
+    'recurringDeposits': double.tryParse(recurringDepositsController.text) ?? 0,
+    'savingsAccount': double.tryParse(savingsAccountController.text) ?? 0,
+    'currentAccount': double.tryParse(currentAccountController.text) ?? 0,
+    'employeeProvidentFund': double.tryParse(employeeProvidentFundController.text) ?? 0,
+    'publicProvidentFund': double.tryParse(publicProvidentFundController.text) ?? 0,
+  };
 
-  // Add Assets fields if they are not empty
-  if (fixedDepositsController.text.isNotEmpty) {
-    data['Assets'] = {
-      'Fixed Deposits': double.tryParse(fixedDepositsController.text),
-    };
-  }
-  if (recurringDepositsController.text.isNotEmpty) {
-    data['Assets'] ??= {};
-    data['Assets']!['Recurring Deposits'] = double.tryParse(recurringDepositsController.text);
-  }
-  if (savingsAccountController.text.isNotEmpty) {
-    data['Assets'] ??= {};
-    data['Assets']!['Savings Account'] = double.tryParse(savingsAccountController.text);
-  }
-  if (currentAccountController.text.isNotEmpty) {
-    data['Assets'] ??= {};
-    data['Assets']!['Current Account'] = double.tryParse(currentAccountController.text);
-  }
-  if (employeeProvidentFundController.text.isNotEmpty) {
-    data['Assets'] ??= {};
-    data['Assets']!['Employee Provident Fund'] = double.tryParse(employeeProvidentFundController.text);
-  }
-  if (publicProvidentFundController.text.isNotEmpty) {
-    data['Assets'] ??= {};
-    data['Assets']!['Public Provident Fund'] = double.tryParse(publicProvidentFundController.text);
-  }
+  // Goals
+  List<Map<String, dynamic>> goalsList = [];
 
-  // Add Goal if selected
-  if (selectedGoal != null) {
-    data['Goal'] = selectedGoal;
-  }
+  for (var goalData in selectedGoals) {
+    final goal = goalData['goal'];
 
-  // Add Marriage-specific fields if selected and filled out
-  if (selectedGoal == 'Marriage') {
-    if (marriageBudgetController.text.isNotEmpty || marriageYearsController.text.isNotEmpty) {
-      data['Marriage Details'] = {};
-      if (marriageBudgetController.text.isNotEmpty) {
-        data['Marriage Details']!['Total Estimated Budget'] = double.tryParse(marriageBudgetController.text);
-      }
-      if (marriageYearsController.text.isNotEmpty) {
-        data['Marriage Details']!['Total Years to Goal'] = int.tryParse(marriageYearsController.text);
-      }
+    if (goal == "Dream Car" || goal == "Dream Home" || goal == "Emergency Fund") {
+      goalsList.add({'goal': goal});
+    } else if (goal == "Retirement") {
+      goalsList.add({
+        'goal': goal,
+        'currentAge': int.tryParse(retirementControllers['currentAge']?.text ?? '') ?? null,
+        'retirementAge': int.tryParse(retirementControllers['retirementAge']?.text ?? '') ?? null,
+      });
+    } else if (goal == "Marriage") {
+      goalsList.add({
+        'goal': goal,
+        'estimatedBudget': double.tryParse(goalBudgetControllers[goal]?.text ?? '') ?? null,
+        'targetYear': int.tryParse(goalYearsControllers[goal]?.text ?? '') ?? null,
+      });
     }
   }
 
-  // Add timestamp
-  data['timestamp'] = FieldValue.serverTimestamp();
+  // Calculate totals
+  double totalIncome = incomeData.values.reduce((sum, value) => sum + value);
+  double totalEssentialExpenses = essentialExpensesData.values.reduce((sum, value) => sum + value);
+  double totalOptionalExpenses = optionalExpensesData.values.reduce((sum, value) => sum + value);
+  double totalSavings = totalIncome - (totalEssentialExpenses + totalOptionalExpenses);
+
+  // Firestore document structure
+  Map<String, dynamic> data = {
+    'incomeDetails': incomeData,
+    'essentialExpenses': essentialExpensesData,
+    'optionalExpenses': optionalExpensesData,
+    'assets': assetsData,
+    'totalIncome': totalIncome, // ✅ Added total income
+    'totalEssentialExpenses': totalEssentialExpenses, // ✅ Added total essential expenses
+    'totalOptionalExpenses': totalOptionalExpenses, // ✅ Added total optional expenses
+    'savings': totalSavings,
+    'goalsSelected': goalsList,
+    'timestamp': FieldValue.serverTimestamp(),
+  };
 
   try {
-    // Save only the entered data to Firestore
-    await FirebaseFirestore.instance.collection('financialPlanner').doc(userId).set(data, SetOptions(merge: true));
+    await FirebaseFirestore.instance
+        .collection('financialPlanner')
+        .doc(userId)
+        .set(data, SetOptions(merge: true));
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Data saved successfully!')),
@@ -221,6 +276,8 @@ Future<void> _saveToFirestore() async {
     );
   }
 }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -233,42 +290,22 @@ Future<void> _saveToFirestore() async {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSection('Select Your Goal', [
-              DropdownButtonFormField<String>(
-                value: selectedGoal,
-                decoration: InputDecoration(
-                  labelText: 'Select your goal',
-                  border: OutlineInputBorder(),
-                ),
-                items: goals.map((String goal) {
-                  return DropdownMenuItem<String>(
-                    value: goal,
-                    child: Text(goal),
-                  );
-                }).toList(),
-                onChanged: (String? value) {
-                  setState(() {
-                    selectedGoal = value;
-                  });
-                },
-              ),
-              if (selectedGoal == 'Marriage') ...[
-                const SizedBox(height: 16),
-                _buildTextField('Total Estimated Budget', marriageBudgetController),
-                _buildTextField('Total Years to Goal', marriageYearsController),
-              ],
-            ]),
+            _buildGoalsSection(),
             _buildSection('Income Details', [
               _buildTextField('Base Salary', baseSalaryController),
-              _buildTextField('Dearness Allowance', dearnessAllowanceController),
-              _buildTextField('House Rent Allowance (HRA)', houseRentAllowanceController),
-              _buildTextField('Transport Allowance', transportAllowanceController),
+              _buildTextField(
+                  'Dearness Allowance', dearnessAllowanceController),
+              _buildTextField(
+                  'House Rent Allowance (HRA)', houseRentAllowanceController),
+              _buildTextField(
+                  'Transport Allowance', transportAllowanceController),
             ]),
             _buildSection('Essential Expenses', [
               _buildTextField('Rent/Mortgage', rentMortgageController),
               _buildTextField('Food & Groceries', foodGroceriesController),
               _buildTextField('Insurance', insuranceController),
-              _buildTextField('Medical & Healthcare', medicalExpensesController),
+              _buildTextField(
+                  'Medical & Healthcare', medicalExpensesController),
               _buildTextField('Loan Repayments', loanRepaymentsController),
             ]),
             _buildSection('Optional Expenses', [
@@ -281,11 +318,14 @@ Future<void> _saveToFirestore() async {
             ]),
             _buildSection('Assets', [
               _buildTextField('Fixed Deposits', fixedDepositsController),
-              _buildTextField('Recurring Deposits', recurringDepositsController),
+              _buildTextField(
+                  'Recurring Deposits', recurringDepositsController),
               _buildTextField('Savings Account', savingsAccountController),
               _buildTextField('Current Account', currentAccountController),
-              _buildTextField('Employee Provident Fund', employeeProvidentFundController),
-              _buildTextField('Public Provident Fund', publicProvidentFundController),
+              _buildTextField(
+                  'Employee Provident Fund', employeeProvidentFundController),
+              _buildTextField(
+                  'Public Provident Fund', publicProvidentFundController),
             ]),
             const SizedBox(height: 24.0),
             Center(
@@ -316,11 +356,90 @@ Future<void> _saveToFirestore() async {
     );
   }
 
+  Widget _buildGoalsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Financial Goals',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+
+        // List of selected goals
+        ...selectedGoals.asMap().entries.map((entry) {
+          final index = entry.key;
+          final goalData = entry.value;
+          final goal = goalData['goal'];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: goal,
+                      decoration: InputDecoration(
+                        labelText: 'Select goal ${index + 1}',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: availableGoals.map((String goal) {
+                        return DropdownMenuItem<String>(
+                          value: goal,
+                          child: Text(goal),
+                        );
+                      }).toList(),
+                      onChanged: (String? value) {
+                        _updateGoal(index, value);
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.remove_circle, color: Colors.red),
+                    onPressed: () => _removeGoal(index),
+                  ),
+                ],
+              ),
+              if (goal != null) ...[
+                const SizedBox(height: 8),
+
+                // Only show input fields if the goal is NOT "Dream Car", "Dream Home", or "Emergency Fund"
+                if (goal == 'Retirement') ...[
+                  _buildTextField(
+                      'Current Age', retirementControllers['currentAge']!),
+                  _buildTextField('Target Retirement Age',
+                      retirementControllers['retirementAge']!),
+                ] else if (goal != 'Dream Car' &&
+                    goal != 'Dream Home' &&
+                    goal != 'Emergency Fund') ...[
+                  _buildTextField(
+                      'Estimated Budget', goalBudgetControllers[goal]!),
+                  _buildTextField('Years to Goal', goalYearsControllers[goal]!),
+                ],
+
+                const SizedBox(height: 16),
+              ],
+            ],
+          );
+        }).toList(),
+
+        // Add goal button
+        Center(
+          child: TextButton(
+            onPressed: _addNewGoal,
+            child: const Text('+ Add Another Goal'),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   Widget _buildSection(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(title,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         ...children,
         const SizedBox(height: 16),
@@ -334,7 +453,8 @@ Future<void> _saveToFirestore() async {
       child: TextField(
         controller: controller,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+        decoration:
+            InputDecoration(labelText: label, border: OutlineInputBorder()),
       ),
     );
   }
