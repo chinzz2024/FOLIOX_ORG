@@ -1,65 +1,71 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
-class DreamHome extends StatefulWidget {
-  const DreamHome({Key? key}) : super(key: key);
-
-  @override
-  State<DreamHome> createState() => _DreamHomeState();
+void main() {
+  runApp(LoanRatesApp());
 }
 
-class _DreamHomeState extends State<DreamHome> {
-  final TextEditingController _targetAmountController = TextEditingController();
-  final TextEditingController _currentSavingsController =
-      TextEditingController();
-  final TextEditingController _yearsToGoalController = TextEditingController();
+class LoanRatesApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: HomeScreen(),
+    );
+  }
+}
 
-  double targetAmount = 0;
-  double currentSavings = 0;
-  int yearsToGoal = 0;
-  bool showDownPaymentFields = false;
-  bool isEMISelected = false;
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
 
-  // EMI Variables
-  double loanAmount = 50000; // Set to a valid initial amount
-  double interestRate = 6.5;
-  int loanTenure = 12;
-  double emi = 0;
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+  final List<Widget> _screens = [LoanRatesScreen(), DreamHomeScreen()];
 
-  // Loan rates list
-  List<dynamic> loanRates = [];
-
-  // Monthly savings calculation
-  double calculateMonthlySavings() {
-    double remainingAmount = targetAmount - currentSavings;
-    return remainingAmount > 0 ? remainingAmount / (yearsToGoal * 12) : 0;
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
-  // Progress calculation
-  double calculateProgress() {
-    return targetAmount > 0 ? (currentSavings / targetAmount) * 100 : 0;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Loan & Home EMI')),
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Loan Rates'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dream Home'),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+
+class LoanRatesScreen extends StatefulWidget {
+  @override
+  _LoanRatesScreenState createState() => _LoanRatesScreenState();
+}
+
+class _LoanRatesScreenState extends State<LoanRatesScreen> {
+   List loanRates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchLoanRates();
   }
 
-  // EMI Calculation
-  void calculateEMI() {
-    double principal = loanAmount;
-    double annualRate = interestRate / 100; // Convert interest to decimal
-    int months = loanTenure;
-
-    double monthlyInterestRate = annualRate / 12;
-    emi = (principal * monthlyInterestRate *
-            pow(1 + monthlyInterestRate, months)) /
-        (pow(1 + monthlyInterestRate, months) - 1);
-
-    setState(() {});
-  }
-
-  // Fetch loan rates from Flask API
   Future<void> fetchLoanRates() async {
     final response = await http.get(Uri.parse('http://127.0.0.1:5000/loan-rates'));
-
     if (response.statusCode == 200) {
       setState(() {
         loanRates = json.decode(response.body);
@@ -70,217 +76,302 @@ class _DreamHomeState extends State<DreamHome> {
   }
 
   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: loanRates.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: loanRates.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(loanRates[index]['bank_name']),
+                  subtitle: Text('Rate: ${loanRates[index]['rate']}%'),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class DreamHomeScreen extends StatefulWidget {
+  @override
+  State<DreamHomeScreen> createState() => _DreamHomeScreenState();
+}
+
+class _DreamHomeScreenState extends State<DreamHomeScreen> {
+  bool isEMISelected = false;
+  double emi=0.0;
+  List<Map<String, dynamic>> loanRates = []; // Loan rates storage
+
+  @override
   void initState() {
     super.initState();
-    fetchLoanRates(); // Fetch loan rates when the app starts
+    fetchLoanRates();
+  }
+
+   Future<void> fetchLoanRates() async {
+    final response = await http.get(Uri.parse('http://127.0.0.1:5000/loan-rates'));
+    if (response.statusCode == 200) {
+      setState(() {
+        loanRates = json.decode(response.body);
+      });
+    } else {
+      throw Exception('Failed to load loan rates');
+    }
+  }
+
+
+ void showEMICalculator(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.all(16.0),
+          child: EMICalculator(
+            onEMICalculated: (calculatedEMI) {
+              setState(() {
+                emi = calculatedEMI; // Update the EMI value
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
+
+   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('How do you want to build your home?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      isEMISelected = false;
+                    });
+                  },
+                  child: const Text('Ready Cash'),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    showEMICalculator(context);
+                  },
+                  child: const Text('EMI'),
+                ),
+              ],
+            ),
+            if (!isEMISelected) ReadyCashCalculator(loanRates: [],),
+            if (isEMISelected && emi > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text('EMI: ₹${emi.toStringAsFixed(2)}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class ReadyCashCalculator extends StatefulWidget {
+  final List<Map<String, dynamic>> loanRates;
+
+  ReadyCashCalculator({required this.loanRates});
+
+  @override
+  _ReadyCashCalculatorState createState() => _ReadyCashCalculatorState();
+}
+
+
+class _ReadyCashCalculatorState extends State<ReadyCashCalculator> {
+  TextEditingController targetAmountController = TextEditingController();
+  TextEditingController currentSavingsController = TextEditingController();
+  TextEditingController yearsController = TextEditingController();
+  double monthlySavings = 0.0;
+
+  void calculateMonthlySavings() {
+    double targetAmount = double.tryParse(targetAmountController.text) ?? 0;
+    double currentSavings = double.tryParse(currentSavingsController.text) ?? 0;
+    int years = int.tryParse(yearsController.text) ?? 0;
+
+    if (years > 0) {
+      double remainingAmount = targetAmount - currentSavings;
+      monthlySavings = remainingAmount / (years * 12);
+    } else {
+      monthlySavings = 0;
+    }
+
+    setState(() {});
+  }
+
+  Widget buildTextField(String label, TextEditingController controller) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      margin: EdgeInsets.symmetric(vertical: 5),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          labelText: label,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dream Home',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        const Text('Ready Cash Calculator',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        buildTextField('Target Amount (₹)', targetAmountController),
+        buildTextField('Current Savings (₹)', currentSavingsController),
+        buildTextField('Years to Goal', yearsController),
+        SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: calculateMonthlySavings,
+          child: Text('Calculate Monthly Savings'),
         ),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 30),
-              TextField(
-                controller: _targetAmountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Target Amount (₹)',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    targetAmount = double.tryParse(value) ?? 0;
-                    loanAmount = targetAmount; // Sync loan amount with target amount
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'How do you want to build a Home?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        isEMISelected = false; // Switch to Ready Cash
-                        showDownPaymentFields = true;
-                      });
-                    },
-                    child: const Text('Ready Cash'),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        isEMISelected = true; // Switch to EMI
-                        showDownPaymentFields = false;
-                      });
-                    },
-                    child: const Text('EMI'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-              // Display the Ready Cash fields when selected
-              if (!isEMISelected && showDownPaymentFields) ...[
-                TextField(
-                  controller: _currentSavingsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Savings (₹)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _yearsToGoalController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Years to Goal',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      currentSavings =
-                          double.tryParse(_currentSavingsController.text) ?? 0;
-                      yearsToGoal =
-                          int.tryParse(_yearsToGoalController.text) ?? 0;
-                    });
-                  },
-                  child: const Text('Save Plan'),
-                ),
-                const SizedBox(height: 20),
-                if (targetAmount > 0 && yearsToGoal > 0)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Monthly Savings Required: ₹${calculateMonthlySavings().toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Progress: ${calculateProgress().toStringAsFixed(2)}%',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-              ],
-              // Display EMI fields when EMI is selected
-              if (isEMISelected) ...[
-                const SizedBox(height: 20),
-                const Text(
-                  'Loan Amount (₹)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Slider(
-                  value: loanAmount,
-                  min: 100000,
-                  max: 5000000, // max slider value based on targetAmount
-                  divisions: 19,
-                  label: '₹${loanAmount.toStringAsFixed(0)}',
-                  onChanged: (double value) {
-                    setState(() {
-                      loanAmount = value;
-                    });
-                    calculateEMI(); // Recalculate EMI
+        SizedBox(height: 20),
+        Text('Monthly Savings Required: ₹${monthlySavings.toStringAsFixed(2)}'),
+        const SizedBox(height: 30),
+        const Text('Available Loan Rates:',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        widget.loanRates.isEmpty
+            ? Center(child: CircularProgressIndicator())
+            : Expanded(
+                child: ListView.builder(
+                  itemCount: widget.loanRates.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(widget.loanRates[index]['bank_name']),
+                      subtitle: Text('Rate: ${widget.loanRates[index]['rate']}%'),
+                    );
                   },
                 ),
-                Text('₹${loanAmount.toStringAsFixed(0)}'),
-                const SizedBox(height: 20),
-                const Text(
-                  'Interest Rate (%)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Slider(
-                  value: interestRate,
-                  min: 0,
-                  max: 20,
-                  divisions: 40,
-                  label: '${interestRate.toStringAsFixed(1)}%',
-                  onChanged: (double value) {
-                    setState(() {
-                      interestRate = value;
-                    });
-                    calculateEMI(); // Recalculate EMI
-                  },
-                ),
-                Text('${interestRate.toStringAsFixed(1)}%'),
-                const SizedBox(height: 20),
-                const Text(
-                  'Loan Tenure (Months)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Slider(
-                  value: loanTenure.toDouble(),
-                  min: 6,
-                  max: 72,
-                  divisions: 66,
-                  label: '$loanTenure months',
-                  onChanged: (double value) {
-                    setState(() {
-                      loanTenure = value.toInt();
-                    });
-                    calculateEMI(); // Recalculate EMI
-                  },
-                ),
-                Text('$loanTenure months'),
-                const SizedBox(height: 20),
-                // Display the EMI result
-                if (emi > 0)
-                  Center(
-                    child: Text(
-                      'EMI: ₹${emi.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-              ],
-              const SizedBox(height: 30),
-              const Text(
-                'Available Loan Rates:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
-              // Display loan rates
-              loanRates.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: loanRates.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(loanRates[index]['bank_name']),
-                          subtitle: Text('Rate: ${loanRates[index]['rate']}%'),
-                        );
-                      },
-                    ),
-            ],
+      ],
+    );
+  }
+}
+
+class EMICalculator extends StatefulWidget {
+  final Function(double) onEMICalculated; // Callback to pass EMI value
+
+  EMICalculator({required this.onEMICalculated});
+
+  @override
+  _EMICalculatorState createState() => _EMICalculatorState();
+}
+
+class _EMICalculatorState extends State<EMICalculator> {
+  TextEditingController loanController = TextEditingController(text: "7500000");
+  TextEditingController interestController = TextEditingController(text: "8");
+  TextEditingController tenureController = TextEditingController(text: "15");
+  double emi = 0.0;
+  double totalInterest = 0.0;
+  double totalPayment = 0.0;
+
+  void calculateEMI() {
+    double loanAmount = double.parse(loanController.text);
+    double interestRate = double.parse(interestController.text) / 12 / 100;
+    int tenureMonths = int.parse(tenureController.text) * 12;
+
+    if (interestRate > 0) {
+      emi = (loanAmount * interestRate * pow(1 + interestRate, tenureMonths)) /
+          (pow(1 + interestRate, tenureMonths) - 1);
+      totalPayment = emi * tenureMonths;
+      totalInterest = totalPayment - loanAmount;
+    } else {
+      emi = loanAmount / tenureMonths;
+      totalPayment = loanAmount;
+      totalInterest = 0;
+    }
+
+    setState(() {});
+    widget.onEMICalculated(emi); // Pass the EMI value back to the parent
+  }
+
+  
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: TextField(
+              controller: loanController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                labelText: 'Loan Amount (₹)',
+              ),
+            ),
           ),
-        ),
+          SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: TextField(
+              controller: interestController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                labelText: 'Interest Rate (%)',
+              ),
+            ),
+          ),
+          SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: TextField(
+              controller: tenureController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                labelText: 'Tenure (Years)',
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: calculateEMI,
+            child: Text('Calculate EMI'),
+          ),
+          SizedBox(height: 20),
+          Text('Monthly EMI: ₹${emi.toStringAsFixed(2)}'),
+          Text('Total Interest Payable: ₹${totalInterest.toStringAsFixed(2)}'),
+          Text('Total Payment (Principal + Interest): ₹${totalPayment.toStringAsFixed(2)}'),
+        ],
       ),
     );
   }

@@ -295,17 +295,7 @@ Future<void> _fetchFinancialData() async {
             // Set Your Goal Button
             const SizedBox(height: 20),
             Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CalculationPage(savings: 0.0),
-                    ),
-                  );
-                },
-                child: const Text('Set Your Goal'),
-              ),
+             
             ),
             const SizedBox(height: 20), // Add some space at the bottom
           ],
@@ -408,7 +398,7 @@ Future<void> _fetchFinancialData() async {
             '- Reduce ${entry.key}: ₹${entry.value.toStringAsFixed(2)}',
             style: const TextStyle(fontSize: 16),
           );
-        }).toList(),
+        }),
         const SizedBox(height: 10),
       ]);
     }
@@ -425,7 +415,7 @@ Future<void> _fetchFinancialData() async {
             '- Reduce ${entry.key}: ₹${entry.value.toStringAsFixed(2)}',
             style: const TextStyle(fontSize: 16),
           );
-        }).toList(),
+        }),
         const SizedBox(height: 10),
       ]);
     }

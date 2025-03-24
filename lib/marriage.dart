@@ -30,11 +30,11 @@ class _MarriageState extends State<Marriage> {
 
         // SIP Calculation (Assuming 12% annual return, monthly investment of 10k)
         double sipFutureValue = 10000 * ((pow(1 + 0.01, years * 12) - 1) / 0.01) * (1 + 0.01);
-        _sipSuggestion = "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹${sipFutureValue.toStringAsFixed(2)} in ${years} years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
+        _sipSuggestion = "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹${sipFutureValue.toStringAsFixed(2)} in $years years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
 
         // FD Calculation (Assuming 7% annual return)
         double fdFutureValue = savings * pow(1.07, years);
-        _fdSuggestion = "Placing your current savings of ₹${savings.toStringAsFixed(2)} in an FD at 7% annual return would grow to ₹${fdFutureValue.toStringAsFixed(2)} in ${years} years.";
+        _fdSuggestion = "Placing your current savings of ₹${savings.toStringAsFixed(2)} in an FD at 7% annual return would grow to ₹${fdFutureValue.toStringAsFixed(2)} in $years years.";
       } else {
         _inflationResult = "";
         _sipSuggestion = "";
