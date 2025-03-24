@@ -49,14 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-
 class LoanRatesScreen extends StatefulWidget {
   @override
   _LoanRatesScreenState createState() => _LoanRatesScreenState();
 }
 
 class _LoanRatesScreenState extends State<LoanRatesScreen> {
-   List loanRates = [];
+  List<dynamic> loanRates = [];
 
   @override
   void initState() {
@@ -65,13 +64,20 @@ class _LoanRatesScreenState extends State<LoanRatesScreen> {
   }
 
   Future<void> fetchLoanRates() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:5000/loan-rates'));
-    if (response.statusCode == 200) {
-      setState(() {
-        loanRates = json.decode(response.body);
-      });
-    } else {
-      throw Exception('Failed to load loan rates');
+    try {
+      final response = await http.get(Uri.parse('http://127.0.0.1:5000/loan-rates'));
+      if (response.statusCode == 200) {
+        setState(() {
+          loanRates = json.decode(response.body);
+        });
+      } else {
+        throw Exception('Failed to load loan rates: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching loan rates: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading loan rates: $e')),
+      );
     }
   }
 
@@ -83,9 +89,10 @@ class _LoanRatesScreenState extends State<LoanRatesScreen> {
           : ListView.builder(
               itemCount: loanRates.length,
               itemBuilder: (context, index) {
+                final rate = loanRates[index];
                 return ListTile(
-                  title: Text(loanRates[index]['bank_name']),
-                  subtitle: Text('Rate: ${loanRates[index]['rate']}%'),
+                  title: Text(rate['bank_name'] ?? 'Unknown Bank'),
+                  subtitle: Text('Rate: ${rate['rate']?.toString() ?? 'N/A'}%'),
                 );
               },
             ),
@@ -100,8 +107,8 @@ class DreamHomeScreen extends StatefulWidget {
 
 class _DreamHomeScreenState extends State<DreamHomeScreen> {
   bool isEMISelected = false;
-  double emi=0.0;
-  List<Map<String, dynamic>> loanRates = []; // Loan rates storage
+  double emi = 0.0;
+  List<dynamic> loanRates = [];
 
   @override
   void initState() {
@@ -109,19 +116,25 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
     fetchLoanRates();
   }
 
-   Future<void> fetchLoanRates() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:5000/loan-rates'));
-    if (response.statusCode == 200) {
-      setState(() {
-        loanRates = json.decode(response.body);
-      });
-    } else {
-      throw Exception('Failed to load loan rates');
+  Future<void> fetchLoanRates() async {
+    try {
+      final response = await http.get(Uri.parse('http://127.0.0.1:5000/loan-rates'));
+      if (response.statusCode == 200) {
+        setState(() {
+          loanRates = json.decode(response.body);
+        });
+      } else {
+        throw Exception('Failed to load loan rates: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching loan rates: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading loan rates: $e')),
+      );
     }
   }
 
-
- void showEMICalculator(BuildContext context) {
+  void showEMICalculator(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -131,7 +144,8 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
           child: EMICalculator(
             onEMICalculated: (calculatedEMI) {
               setState(() {
-                emi = calculatedEMI; // Update the EMI value
+                emi = calculatedEMI;
+                isEMISelected = true;
               });
             },
           ),
@@ -140,58 +154,73 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
     );
   }
 
-
-   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('How do you want to build your home?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      isEMISelected = false;
-                    });
-                  },
-                  child: const Text('Ready Cash'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    showEMICalculator(context);
-                  },
-                  child: const Text('EMI'),
-                ),
-              ],
-            ),
-            if (!isEMISelected) ReadyCashCalculator(loanRates: [],),
-            if (isEMISelected && emi > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Text('EMI: ₹${emi.toStringAsFixed(2)}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-          ],
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+       appBar: AppBar(
+        title: Text('Dream Home', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
       ),
-    );
-  }
-}
-class ReadyCashCalculator extends StatefulWidget {
-  final List<Map<String, dynamic>> loanRates;
 
-  ReadyCashCalculator({required this.loanRates});
+    body: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('How do you want to build your home?',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    isEMISelected = false;
+                  });
+                },
+                child: const Text('Ready Cash'),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  showEMICalculator(context);
+                },
+                child: const Text('EMI'),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          // Expanded widget to take remaining space
+          Expanded(
+            child: isEMISelected
+                ? emi > 0
+                    ? Center(
+                        child: Text('EMI: ₹${emi.toStringAsFixed(2)}',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      )
+                    : Center(child: Text('Calculate your EMI'))
+                : ReadyCashCalculator(loanRates: loanRates),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+}
+
+class ReadyCashCalculator extends StatefulWidget {
+  final List<dynamic> loanRates;
+
+  const ReadyCashCalculator({Key? key, required this.loanRates}) : super(key: key);
 
   @override
   _ReadyCashCalculatorState createState() => _ReadyCashCalculatorState();
 }
-
 
 class _ReadyCashCalculatorState extends State<ReadyCashCalculator> {
   TextEditingController targetAmountController = TextEditingController();
@@ -235,47 +264,61 @@ class _ReadyCashCalculatorState extends State<ReadyCashCalculator> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        const Text('Ready Cash Calculator',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        buildTextField('Target Amount (₹)', targetAmountController),
-        buildTextField('Current Savings (₹)', currentSavingsController),
-        buildTextField('Years to Goal', yearsController),
-        SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: calculateMonthlySavings,
-          child: Text('Calculate Monthly Savings'),
-        ),
-        SizedBox(height: 20),
-        Text('Monthly Savings Required: ₹${monthlySavings.toStringAsFixed(2)}'),
-        const SizedBox(height: 30),
-        const Text('Available Loan Rates:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        widget.loanRates.isEmpty
-            ? Center(child: CircularProgressIndicator())
-            : Expanded(
-                child: ListView.builder(
-                  itemCount: widget.loanRates.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(widget.loanRates[index]['bank_name']),
-                      subtitle: Text('Rate: ${widget.loanRates[index]['rate']}%'),
-                    );
-                  },
-                ),
-              ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          const Text('Ready Cash Calculator',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          buildTextField('Target Amount (₹)', targetAmountController),
+          buildTextField('Current Savings (₹)', currentSavingsController),
+          buildTextField('Years to Goal', yearsController),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: calculateMonthlySavings,
+            child: Text('Calculate Monthly Savings'),
+          ),
+          SizedBox(height: 20),
+          Text('Monthly Savings Required: ₹${monthlySavings.toStringAsFixed(2)}'),
+          const SizedBox(height: 30),
+          const Text('Available Loan Rates:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
+          // ConstrainedBox to limit the height of the loan rates list
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.3, // 30% of screen height
+            ),
+            child: widget.loanRates.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: ClampingScrollPhysics(),
+                    itemCount: widget.loanRates.length,
+                    itemBuilder: (context, index) {
+                      final rate = widget.loanRates[index];
+                      return ListTile(
+                        title: Text(rate['bank_name'] ?? 'Unknown Bank'),
+                        subtitle: Text('Rate: ${rate['rate']?.toString() ?? 'N/A'}%'),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
+  
 
 class EMICalculator extends StatefulWidget {
-  final Function(double) onEMICalculated; // Callback to pass EMI value
+  final Function(double) onEMICalculated;
 
-  EMICalculator({required this.onEMICalculated});
+  const EMICalculator({Key? key, required this.onEMICalculated}) : super(key: key);
 
   @override
   _EMICalculatorState createState() => _EMICalculatorState();
@@ -290,9 +333,9 @@ class _EMICalculatorState extends State<EMICalculator> {
   double totalPayment = 0.0;
 
   void calculateEMI() {
-    double loanAmount = double.parse(loanController.text);
-    double interestRate = double.parse(interestController.text) / 12 / 100;
-    int tenureMonths = int.parse(tenureController.text) * 12;
+    double loanAmount = double.tryParse(loanController.text) ?? 0;
+    double interestRate = (double.tryParse(interestController.text) ?? 0) / 12 / 100;
+    int tenureMonths = (int.tryParse(tenureController.text) ?? 0) * 12;
 
     if (interestRate > 0) {
       emi = (loanAmount * interestRate * pow(1 + interestRate, tenureMonths)) /
@@ -306,10 +349,9 @@ class _EMICalculatorState extends State<EMICalculator> {
     }
 
     setState(() {});
-    widget.onEMICalculated(emi); // Pass the EMI value back to the parent
+    widget.onEMICalculated(emi);
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
