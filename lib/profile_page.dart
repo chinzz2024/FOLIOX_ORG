@@ -58,46 +58,92 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF2F6FC), // Soft Blue Background
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF1A2980),  // Deep navy blue
+            Color(0xFF26D0CE),  // Teal accent
+          ],
+        ),
+      ),
       child: SafeArea(
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            title: const Text('Profile', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Homepage()),
-                );
-              },
+            elevation: 0,
+            title: Text(
+              'Profile',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.3,
+                fontSize: 20,
+              ),
             ),
-            backgroundColor: const Color(0xFF0C0625), // Deep Navy AppBar
-          ),
-          body: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : userDataUI(),
-          bottomNavigationBar: BottomNavigationBar(
-            backgroundColor: const Color(0xFFEAEAEA),
-            currentIndex: _currentIndex,
-            onTap: _onBottomNavTapped,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.trending_up),
-                label: 'Stocks',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.savings),
-                label: 'Planner',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Profile',
+            backgroundColor: Color(0xFF0F2027), // Dark blue AppBar
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.edit, color: Colors.white),
+                onPressed: () {
+                  // Add edit profile functionality
+                },
               ),
             ],
-            selectedItemColor: const Color(0xFF007AFF), // Bright Blue
-            unselectedItemColor: Colors.grey,
+          ),
+          body: isLoading
+              ? Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : userDataUI(),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 15,
+                  offset: Offset(0, -5),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
+              ),
+              child: BottomNavigationBar(
+                backgroundColor: Colors.white,
+                currentIndex: _currentIndex,
+                onTap: _onBottomNavTapped,
+                type: BottomNavigationBarType.fixed,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.trending_up),
+                    label: 'Stocks',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.savings),
+                    label: 'Planner',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                ],
+                selectedItemColor: Color(0xFF0F2027),
+                unselectedItemColor: Colors.grey,
+                selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ),
       ),
@@ -106,39 +152,85 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget userDataUI() {
     return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
-            CircleAvatar(
-              radius: 60,
-              backgroundImage: AssetImage('assets/profile_placeholder.png'),
-              backgroundColor: Colors.grey[200],
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 70,
+                backgroundImage: AssetImage('assets/profile_placeholder.png'),
+                backgroundColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 20),
             Text(
               fullName ?? 'Loading...',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2C2C2C),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 1.2,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               email ?? 'Loading...',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 16, 
+                color: Colors.white70,
+                letterSpacing: 1.1,
+              ),
             ),
-            const SizedBox(height: 20),
-            Divider(color: Colors.grey[300], thickness: 1),
-            const SizedBox(height: 20),
-            infoTile(Icons.account_balance_wallet, 'Portfolio Value',
-                portfolioValue),
-            infoTile(Icons.phone, 'Phone Number', phoneNumber),
-            infoTile(Icons.credit_card, 'PAN Number', panNumber),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 15,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildInfoCard(
+                    icon: Icons.account_balance_wallet,
+                    title: 'Portfolio Value',
+                    value: portfolioValue ?? 'Loading...',
+                  ),
+                  Divider(color: Colors.grey[300], thickness: 1),
+                  _buildInfoCard(
+                    icon: Icons.phone,
+                    title: 'Phone Number',
+                    value: phoneNumber ?? 'Loading...',
+                  ),
+                  Divider(color: Colors.grey[300], thickness: 1),
+                  _buildInfoCard(
+                    icon: Icons.credit_card,
+                    title: 'PAN Number',
+                    value: panNumber ?? 'Loading...',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
             ElevatedButton(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
@@ -149,15 +241,26 @@ class _ProfilePageState extends State<ProfilePage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(15),
                 ),
+                elevation: 5,
               ),
-              child: const Text(
-                'Log Out',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.logout, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text(
+                    'Log Out',
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -166,11 +269,43 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget infoTile(IconData icon, String title, String? subtitle) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title),
-      subtitle: Text(subtitle ?? 'Loading...'),
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: Color(0xFF0F2027), size: 30),
+          SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
