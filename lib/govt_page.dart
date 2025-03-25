@@ -390,29 +390,39 @@ double _calculateCategoryTotal(Map<String, dynamic> category) {
               _buildTextField(
                   'Public Provident Fund', publicProvidentFundController),
             ]),
-            const SizedBox(height: 24.0),
-            Center(
-              child: Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: _saveToFirestore,
-                    child: const Text('Update Savings'),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SummaryPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Plan'),
-                  ),
-                ],
+         const SizedBox(height: 24.0),
+Center(
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Push buttons to edges
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(left: 32.0), // Move more to left
+        child: ElevatedButton.icon(
+          onPressed: _saveToFirestore,
+          icon: const Icon(Icons.build), // Pencil icon
+          label: const Text('Update Savings'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(right: 32.0), // Move more to right
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SummaryPage(),
               ),
-            ),
+            );
+          },
+          icon: const Icon(Icons.edit), // Checkmark icon
+          label: const Text('Plan'),
+        ),
+      ),
+    ],
+  ),
+),
+
+
           ],
         ),
       ),
