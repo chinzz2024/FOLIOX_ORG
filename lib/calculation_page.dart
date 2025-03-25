@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'business.dart';
 import 'dream.dart';
 import 'dreamcar.dart';
 import 'marriage.dart';
@@ -16,57 +15,83 @@ class CalculationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Savings Calculation',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Savings Calculation',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(
-                child: Text(
-                  'Your calculated savings',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: Text(
-                  '₹${savings.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              buildGoalSelection(context),
-              const SizedBox(height: 20),
-              InstantInvestingWidget(
-                onGetStarted: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(24)),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Card(
+                    elevation: 6,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Your Calculated Savings',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            '₹${savings.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    builder: (context) => const SipCalculatorModal(),
-                  );
-                },
-              ),
-            ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                buildGoalSelection(context),
+                const SizedBox(height: 20),
+                 InstantInvestingWidget(
+                  onGetStarted: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      builder: (context) => const SipCalculatorModal(),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -77,8 +102,9 @@ class CalculationPage extends StatelessWidget {
     return Column(
       children: [
         const Text(
-          'Choose your goal & invest for it!',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          'Choose Your Goal & Invest!',
+          style: TextStyle(
+              fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 10),
@@ -91,7 +117,7 @@ class CalculationPage extends StatelessWidget {
               crossAxisCount: 3,
               crossAxisSpacing: 8,
               mainAxisSpacing: 12,
-              childAspectRatio: 0.75,
+              childAspectRatio: 1,
             ),
             itemCount: goalDetails.length,
             itemBuilder: (context, index) {
@@ -117,15 +143,18 @@ class CalculationPage extends StatelessWidget {
       onTap: onTap,
       child: Card(
         elevation: 4,
+        color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(imagePath, width: 80, height: 90),
-            const SizedBox(height: 8),
+            Image.asset(imagePath, width: 80, height: 80),
+            const SizedBox(height: 10),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
             ),
           ],
         ),
@@ -135,25 +164,14 @@ class CalculationPage extends StatelessWidget {
 }
 
 final List<Map<String, dynamic>> goalDetails = [
-  {
-    'title': 'Retire early',
-    'imagePath': 'assets/retire.png',
-    'page': RetireEarly()
-  },
-  {
-    'title': 'Emergency fund',
-    'imagePath': 'assets/emergency.png',
-    'page': EmergencyFund()
-  },
-  {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page': DreamHome()},
-  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamCar()},
+  {'title': 'Retire early', 'imagePath': 'assets/retire.png', 'page': RetireEarly()},
+  {'title': 'Emergency fund', 'imagePath': 'assets/emergency.png', 'page': EmergencyFund()},
+  {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page':DreamHomeScreen()},
+  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamcarPage()},
   {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
-  {
-    'title': 'Business',
-    'imagePath': 'assets/business.png',
-    'page': BusinessPage()
-  },
 ];
+
+
 
 class InstantInvestingWidget extends StatelessWidget {
   final VoidCallback onGetStarted;
@@ -251,6 +269,7 @@ class _SipCalculatorModalState extends State<SipCalculatorModal> {
             label: 'Monthly Investment (₹)',
             min: 1000,
             max: 50000,
+            
             value: monthlyInvestment,
             onChanged: (value) {
               setState(() {
