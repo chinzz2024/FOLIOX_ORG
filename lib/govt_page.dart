@@ -154,118 +154,173 @@ void _updateGoal(int index, String? newGoal) {
       String? oldRetirementAge = retirementControllers['retirementAge']?.text;
 
       // Remove old goal controllers only if switching goals
-      goalBudgetControllers.remove(oldGoal);
-      goalYearsControllers.remove(oldGoal);
-      retirementControllers.remove(oldGoal);
+      if (oldGoal != newGoal) {
+        goalBudgetControllers.remove(oldGoal);
+        goalYearsControllers.remove(oldGoal);
+        retirementControllers.remove('currentAge');
+        retirementControllers.remove('retirementAge');
+      }
 
       // Assign the old values to the new goal if applicable
       if (newGoal != null) {
-        goalBudgetControllers.putIfAbsent(
-            newGoal, () => TextEditingController(text: oldBudget));
-        goalYearsControllers.putIfAbsent(
-            newGoal, () => TextEditingController(text: oldYears));
-
         if (newGoal == 'Retirement') {
           retirementControllers.putIfAbsent(
               'currentAge', () => TextEditingController(text: oldCurrentAge));
           retirementControllers.putIfAbsent(
               'retirementAge', () => TextEditingController(text: oldRetirementAge));
+        } else if (newGoal != 'Dream Car' && 
+                  newGoal != 'Dream Home' && 
+                  newGoal != 'Emergency Fund') {
+          goalBudgetControllers.putIfAbsent(
+              newGoal, () => TextEditingController(text: oldBudget));
+          goalYearsControllers.putIfAbsent(
+              newGoal, () => TextEditingController(text: oldYears));
         }
       }
+    }
+
+    // Initialize controllers for new goals if they don't exist
+    if (newGoal != null && 
+        newGoal != 'Dream Car' && 
+        newGoal != 'Dream Home' && 
+        newGoal != 'Emergency Fund') {
+      goalBudgetControllers.putIfAbsent(
+          newGoal, () => TextEditingController());
+      goalYearsControllers.putIfAbsent(
+          newGoal, () => TextEditingController());
     }
 
     selectedGoals[index]['goal'] = newGoal;
   });
 }
+
 Future<void> _saveToFirestore() async {
   String? userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) return;
 
-  // Income details
-  Map<String, dynamic> incomeData = {
-    'baseSalary': double.tryParse(baseSalaryController.text) ?? 0,
-    'dearnessAllowance': double.tryParse(dearnessAllowanceController.text) ?? 0,
-    'houseRentAllowance': double.tryParse(houseRentAllowanceController.text) ?? 0,
-    'transportAllowance': double.tryParse(transportAllowanceController.text) ?? 0,
-  };
-
-  // Essential expenses
-  Map<String, dynamic> essentialExpensesData = {
-    'rentMortgage': double.tryParse(rentMortgageController.text) ?? 0,
-    'foodGroceries': double.tryParse(foodGroceriesController.text) ?? 0,
-    'insurance': double.tryParse(insuranceController.text) ?? 0,
-    'medicalExpenses': double.tryParse(medicalExpensesController.text) ?? 0,
-    'loanRepayments': double.tryParse(loanRepaymentsController.text) ?? 0,
-  };
-
-  // Optional expenses
-  Map<String, dynamic> optionalExpensesData = {
-    'diningOut': double.tryParse(diningOutController.text) ?? 0,
-    'entertainment': double.tryParse(entertainmentController.text) ?? 0,
-    'travelVacations': double.tryParse(travelVacationsController.text) ?? 0,
-    'shopping': double.tryParse(shoppingController.text) ?? 0,
-    'fitnessGym': double.tryParse(fitnessGymController.text) ?? 0,
-    'hobbiesLeisure': double.tryParse(hobbiesLeisureController.text) ?? 0,
-  };
-
-  // Assets
-  Map<String, dynamic> assetsData = {
-    'fixedDeposits': double.tryParse(fixedDepositsController.text) ?? 0,
-    'recurringDeposits': double.tryParse(recurringDepositsController.text) ?? 0,
-    'savingsAccount': double.tryParse(savingsAccountController.text) ?? 0,
-    'currentAccount': double.tryParse(currentAccountController.text) ?? 0,
-    'employeeProvidentFund': double.tryParse(employeeProvidentFundController.text) ?? 0,
-    'publicProvidentFund': double.tryParse(publicProvidentFundController.text) ?? 0,
-  };
-
-  // Goals
-  List<Map<String, dynamic>> goalsList = [];
-
-  for (var goalData in selectedGoals) {
-    final goal = goalData['goal'];
-
-    if (goal == "Dream Car" || goal == "Dream Home" || goal == "Emergency Fund") {
-      goalsList.add({'goal': goal});
-    } else if (goal == "Retirement") {
-      goalsList.add({
-        'goal': goal,
-        'currentAge': int.tryParse(retirementControllers['currentAge']?.text ?? '') ?? null,
-        'retirementAge': int.tryParse(retirementControllers['retirementAge']?.text ?? '') ?? null,
-      });
-    } else if (goal == "Marriage") {
-      goalsList.add({
-        'goal': goal,
-        'estimatedBudget': double.tryParse(goalBudgetControllers[goal]?.text ?? '') ?? null,
-        'targetYear': int.tryParse(goalYearsControllers[goal]?.text ?? '') ?? null,
-      });
-    }
-  }
-
-  // Calculate totals
-  double totalIncome = incomeData.values.reduce((sum, value) => sum + value);
-  double totalEssentialExpenses = essentialExpensesData.values.reduce((sum, value) => sum + value);
-  double totalOptionalExpenses = optionalExpensesData.values.reduce((sum, value) => sum + value);
-  double totalSavings = totalIncome - (totalEssentialExpenses + totalOptionalExpenses);
-
-  // Firestore document structure
-  Map<String, dynamic> data = {
-    'incomeDetails': incomeData,
-    'essentialExpenses': essentialExpensesData,
-    'optionalExpenses': optionalExpensesData,
-    'assets': assetsData,
-    'totalIncome': totalIncome, // ✅ Added total income
-    'totalEssentialExpenses': totalEssentialExpenses, // ✅ Added total essential expenses
-    'totalOptionalExpenses': totalOptionalExpenses, // ✅ Added total optional expenses
-    'savings': totalSavings,
-    'goalsSelected': goalsList,
-    'timestamp': FieldValue.serverTimestamp(),
-  };
+  DocumentReference userDocRef =
+      FirebaseFirestore.instance.collection('financialPlanner').doc(userId);
 
   try {
-    await FirebaseFirestore.instance
-        .collection('financialPlanner')
-        .doc(userId)
-        .set(data, SetOptions(merge: true));
+    // Step 1: Fetch existing Firestore data
+    DocumentSnapshot userDoc = await userDocRef.get();
+    Map<String, dynamic> existingData = userDoc.exists
+        ? userDoc.data() as Map<String, dynamic>
+        : {};
+
+    // Step 2: Prepare updatedData map
+    Map<String, dynamic> updatedData = {};
+
+    // ✅ Income Details
+    updatedData['incomeDetails'] = {
+      'baseSalary': num.tryParse(baseSalaryController.text) ??
+          existingData['incomeDetails']?['baseSalary'] ??
+          0,
+      'dearnessAllowance': num.tryParse(dearnessAllowanceController.text) ??
+          existingData['incomeDetails']?['dearnessAllowance'] ??
+          0,
+      'houseRentAllowance': num.tryParse(houseRentAllowanceController.text) ??
+          existingData['incomeDetails']?['houseRentAllowance'] ??
+          0,
+      'transportAllowance': num.tryParse(transportAllowanceController.text) ??
+          existingData['incomeDetails']?['transportAllowance'] ??
+          0,
+    };
+
+    // ✅ Essential Expenses
+    updatedData['essentialExpenses'] = {
+      'rentMortgage': num.tryParse(rentMortgageController.text) ??
+          existingData['essentialExpenses']?['rentMortgage'] ??
+          0,
+      'foodGroceries': num.tryParse(foodGroceriesController.text) ??
+          existingData['essentialExpenses']?['foodGroceries'] ??
+          0,
+      'insurance': num.tryParse(insuranceController.text) ??
+          existingData['essentialExpenses']?['insurance'] ??
+          0,
+      'medicalExpenses': num.tryParse(medicalExpensesController.text) ??
+          existingData['essentialExpenses']?['medicalExpenses'] ??
+          0,
+      'loanRepayments': num.tryParse(loanRepaymentsController.text) ??
+          existingData['essentialExpenses']?['loanRepayments'] ??
+          0,
+    };
+
+    // ✅ Optional Expenses
+    updatedData['optionalExpenses'] = {
+      'diningOut': num.tryParse(diningOutController.text) ??
+          existingData['optionalExpenses']?['diningOut'] ??
+          0,
+      'entertainment': num.tryParse(entertainmentController.text) ??
+          existingData['optionalExpenses']?['entertainment'] ??
+          0,
+      'travelVacations': num.tryParse(travelVacationsController.text) ??
+          existingData['optionalExpenses']?['travelVacations'] ??
+          0,
+      'shopping': num.tryParse(shoppingController.text) ??
+          existingData['optionalExpenses']?['shopping'] ??
+          0,
+      'fitnessGym': num.tryParse(fitnessGymController.text) ??
+          existingData['optionalExpenses']?['fitnessGym'] ??
+          0,
+      'hobbiesLeisure': num.tryParse(hobbiesLeisureController.text) ??
+          existingData['optionalExpenses']?['hobbiesLeisure'] ??
+          0,
+    };
+// ✅ Goals Processing
+List<Map<String, dynamic>> goalsList = selectedGoals.map<Map<String, dynamic>>((goalData) {
+  if (goalData is! Map<String, dynamic>) return {};
+  final goal = goalData['goal'];
+
+  if (goal == "Dream Car" || goal == "Dream Home" || goal == "Emergency Fund") {
+    return {'goal': goal};
+  } else if (goal == "Retirement") {
+    return {
+      'goal': goal,
+      'currentAge': int.tryParse(retirementControllers['currentAge']?.text ?? '') ?? 
+          (goalData['currentAge'] ?? null),
+      'retirementAge': int.tryParse(retirementControllers['retirementAge']?.text ?? '') ?? 
+          (goalData['retirementAge'] ?? null),
+    };
+  } else if (goal == "Marriage") {
+    return {
+      'goal': goal,
+      'estimatedBudget': double.tryParse(goalBudgetControllers[goal]?.text ?? '') ?? 
+          (goalData['estimatedBudget'] ?? null),
+      'targetYear': int.tryParse(goalYearsControllers[goal]?.text ?? '') ?? 
+          (goalData['targetYear'] ?? null),
+    };
+  }
+  return {};
+}).toList();
+
+if (goalsList.isNotEmpty) {
+  updatedData['goalsSelected'] = goalsList;
+}
+
+    // Step 3: Update Firestore first (to store the new values)
+    await userDocRef.set(updatedData, SetOptions(merge: true));
+
+    // Step 4: Fetch the latest document to ensure updated values
+    userDoc = await userDocRef.get();
+    Map<String, dynamic> completeData = userDoc.exists
+        ? userDoc.data() as Map<String, dynamic>
+        : {};
+
+    // Step 5: Calculate totals using updated data
+    num totalIncome = _calculateCategoryTotal(completeData['incomeDetails'] ?? {});
+    num totalEssentialExpenses = _calculateCategoryTotal(completeData['essentialExpenses'] ?? {});
+    num totalOptionalExpenses = _calculateCategoryTotal(completeData['optionalExpenses'] ?? {});
+    num totalSavings = totalIncome - (totalEssentialExpenses + totalOptionalExpenses);
+
+    // Step 6: Save calculated values back to Firestore
+    await userDocRef.update({
+      'totalIncome': totalIncome,
+      'totalEssentialExpenses': totalEssentialExpenses,
+      'totalOptionalExpenses': totalOptionalExpenses,
+      'savings': totalSavings,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Data saved successfully!')),
@@ -275,6 +330,14 @@ Future<void> _saveToFirestore() async {
       SnackBar(content: Text('Failed to save data: $error')),
     );
   }
+}
+
+// 🔥 **Fix: Ensure Only `num` Values are Summed**
+double _calculateCategoryTotal(Map<String, dynamic> category) {
+  return category.values.fold(0.0, (sum, value) {
+    if (value is num) return sum + value;
+    return sum;
+  });
 }
 
 
