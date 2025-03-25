@@ -298,7 +298,7 @@ Widget build(BuildContext context) {
                         case 'Dream Home':
                           Navigator.push(
                             context, 
-                            MaterialPageRoute(builder: (context) => HomeScreen()),
+                            MaterialPageRoute(builder: (context) => DreamHomeScreen()),
                           );
                           break;
                         case 'Emergency Fund':

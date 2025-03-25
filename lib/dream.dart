@@ -174,6 +174,7 @@ Widget build(BuildContext context) {
             Navigator.pop(context);
           },
         ),
+         centerTitle: true,
       ),
 
     body: Padding(

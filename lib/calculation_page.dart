@@ -27,6 +27,7 @@ class CalculationPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+         centerTitle: true,
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -167,7 +168,7 @@ final List<Map<String, dynamic>> goalDetails = [
   {'title': 'Retire early', 'imagePath': 'assets/retire.png', 'page': RetireEarly()},
   {'title': 'Emergency fund', 'imagePath': 'assets/emergency.png', 'page': EmergencyFund()},
   {'title': 'Dream home', 'imagePath': 'assets/home.png', 'page':DreamHomeScreen()},
-  {'title': 'Dream car', 'imagePath': 'assets/car.png', 'page': DreamcarPage()},
+  
   {'title': 'Marriage', 'imagePath': 'assets/marriage.png', 'page': Marriage()},
 ];
 

@@ -38,80 +38,98 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color.fromARGB(255, 199, 230, 238), // ✅ Full-page background
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF1A2980),  // Deep navy blue
+            Color(0xFF26D0CE),  // Teal accent
+          ],
+        ),
+      ),
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Colors.transparent, // ✅ Avoids white color bleeding
+          backgroundColor: Colors.transparent,
           appBar: AppBar(
-            title: const Text(
+            elevation: 0,
+            title: Text(
               'Stocks',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.3,
+                fontSize: 20,
+              ),
             ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginPage()),
-                );
-              },
-            ),
-            backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+            
+            backgroundColor: Color(0xFF0F2027), // Dark blue AppBar
+            centerTitle: true,
+            
           ),
           body: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
                   child: Column(
                     children: [
-                      Stack(
-                        children: [
-                          CarouselSlider(
-                            options: CarouselOptions(
-                              height: 200,
-                              autoPlay: true,
-                              autoPlayInterval: Duration(seconds: 3),
-                              enlargeCenterPage: true,
-                              viewportFraction: 1.0,
-                            ),
-                            items: [
-                              'assets/car.jpg',
-                              'assets/grph.jpg',
-                              'assets/maram.jpg',
-                            ].map((url) {
-                              return Builder(
-                                builder: (BuildContext context) {
-                                  return Container(
-                                    width: double.infinity,
-                                    decoration: BoxDecoration(
-                                      image: DecorationImage(
-                                        image: AssetImage(url),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            }).toList(),
+                      Container(
+                        margin: EdgeInsets.symmetric(vertical: 20),
+                        child: CarouselSlider(
+                          options: CarouselOptions(
+                            height: 250,
+                            autoPlay: true,
+                            autoPlayInterval: Duration(seconds: 4),
+                            enlargeCenterPage: true,
+                            viewportFraction: 0.85,
+                            enlargeFactor: 0.3,
                           ),
-                        ],
+                          items: [
+                            'assets/car.jpg',
+                            'assets/grph.jpg',
+                            'assets/maram.jpg',
+                          ].map((url) {
+                            return Builder(
+                              builder: (BuildContext context) {
+                                return Container(
+                                  width: double.infinity,
+                                  margin: EdgeInsets.symmetric(horizontal: 5),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    image: DecorationImage(
+                                      image: AssetImage(url),
+                                      fit: BoxFit.cover,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black45,
+                                        blurRadius: 10,
+                                        offset: Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          }).toList(),
+                        ),
                       ),
-                      const SizedBox(height: 20),
-
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Quick Actions',
                               style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Color.fromARGB(255, 0, 0, 0), // ✅ Text visible on blue bg
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 85), // Adjusted spacing
+                            SizedBox(height: 20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -142,7 +160,6 @@ class _HomepageState extends State<Homepage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -150,25 +167,50 @@ class _HomepageState extends State<Homepage> {
             ],
           ),
 
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: _onBottomNavTapped,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.trending_up),
-                label: 'Stocks',
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.savings),
-                label: 'Planner',
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 15,
+                  offset: Offset(0, -5),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Profile',
+              child: BottomNavigationBar(
+                backgroundColor: Colors.white,
+                currentIndex: _currentIndex,
+                onTap: _onBottomNavTapped,
+                type: BottomNavigationBarType.fixed,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.trending_up),
+                    label: 'Stocks',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.savings),
+                    label: 'Planner',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profile',
+                  ),
+                ],
+                selectedItemColor: const Color(0xFF003BFF),
+                unselectedItemColor: Colors.grey,
+                selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
               ),
-            ],
-            selectedItemColor: Colors.teal,
-            unselectedItemColor: Colors.grey,
+            ),
           ),
         ),
       ),
@@ -181,16 +223,43 @@ class _HomepageState extends State<Homepage> {
       required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-            child: Icon(icon, color: Colors.white, size: 30),
+      child: Container(
+        width: 150,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0F2027),
+              Color(0xFF203A43),
+              Color(0xFF2C5364),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 14, color: Color.fromARGB(255, 0, 0, 0))), // ✅ White text for visibility
-        ],
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black38,
+              blurRadius: 10,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 40),
+            const SizedBox(height: 10),
+            Text(
+              label, 
+              style: TextStyle(
+                fontSize: 16, 
+                color: Colors.white70,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              )
+            ),
+          ],
+        ),
       ),
     );
   }
