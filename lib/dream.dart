@@ -3,16 +3,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 
-<<<<<<< HEAD
-class DreamHome extends StatefulWidget {
-  const DreamHome({super.key});
-
-  @override
-  State<DreamHome> createState() => _DreamHomeState();
-=======
 void main() {
   runApp(LoanRatesApp());
->>>>>>> cb7d82645588ab083eb25e2235f95430b10a2a70
 }
 
 class LoanRatesApp extends StatelessWidget {
