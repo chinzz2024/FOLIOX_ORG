@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
+import 'package:intl/intl.dart';
 
 class RetireEarly extends StatefulWidget {
   const RetireEarly({super.key});
@@ -10,318 +12,383 @@ class RetireEarly extends StatefulWidget {
 }
 
 class _RetireEarlyState extends State<RetireEarly> {
-  final TextEditingController _ageController = TextEditingController();
-  final TextEditingController _currentAgeController = TextEditingController();
-  String? _displayMessage;
-  List<String> _rules = [];
-  String? _financialStatus;
-  Color _statusColor = Colors.transparent;
-  List<String> _financialSuggestions = [];
+  bool _isLoading = true;
+  String _retirementMessage = '';
+  String _suggestions = '';
+  double _totalRetirementNeed = 0;
+  double _savings = 0;
+  double _originalSavings = 0; // Track original savings before any allocation
+  int _yearsToRetirement = 0;
+  double _sipAmount = 0;
+  double _previousSipAmount = 0; // Track previous investment amount
+  double _requiredMonthlySIP = 0;
+  double _projectedAmount = 0;
+  double _monthlyExpenses = 0;
+  final TextEditingController _investmentController = TextEditingController();
+  bool _showInvestmentInput = true;
+  User? _currentUser;
 
-  final Map<String, List<String>> _ageBasedRules = {
-    '20-30': [
-      'Start saving early to leverage compound interest.',
-      'Build a solid emergency fund.',
-      'Invest in learning skills that increase income.',
-    ],
-    '31-40': [
-      'Increase contributions to retirement accounts.',
-      'Diversify your investments to reduce risk.',
-      'Plan for significant expenses like a home or children’s education.',
-    ],
-    '41-50': [
-      'Review your retirement goals and adjust savings if necessary.',
-      'Start focusing on debt reduction.',
-      'Consider long-term care insurance options.',
-    ],
-    '51+': [
-      'Maximize your retirement savings contributions.',
-      'Ensure you have a healthcare plan in place.',
-      'Start planning for required minimum distributions (RMDs).',
-    ],
-  };
-
-  Future<Map<String, dynamic>?> _fetchUserFinancials() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-
-    final doc = await FirebaseFirestore.instance
-        .collection('planner')
-        .doc(user.uid)
-        .get();
-
-    if (doc.exists) {
-      return doc.data();
-    }
-    return null;
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = FirebaseAuth.instance.currentUser;
+    _fetchFinancialData();
   }
 
-  void _evaluateRetirementPlan() async {
-    final ageText = _ageController.text;
-    final currentAgeText = _currentAgeController.text;
-
-    if (ageText.isEmpty || currentAgeText.isEmpty) {
+  Future<void> _fetchFinancialData() async {
+    if (_currentUser == null) {
       setState(() {
-        _displayMessage = 'Please enter a valid age and current age.';
-        _rules = [];
-        _financialStatus = null;
-        _statusColor = Colors.transparent;
-        _financialSuggestions = [];
+        _isLoading = false;
+        _retirementMessage = 'Please login to access this feature';
       });
       return;
     }
-
-    final age = int.tryParse(ageText);
-    final currentAge = int.tryParse(currentAgeText);
-
-    if (age == null || age <= 0 || currentAge == null || currentAge <= 0) {
-      setState(() {
-        _displayMessage = 'Please enter valid ages.';
-        _rules = [];
-        _financialStatus = null;
-        _statusColor = Colors.transparent;
-        _financialSuggestions = [];
-      });
-      return;
-    }
-
-    final financialData = await _fetchUserFinancials();
-    if (financialData == null) {
-      setState(() {
-        _displayMessage = 'Unable to fetch financial data.';
-        _rules = [];
-        _financialStatus = null;
-        _statusColor = Colors.transparent;
-        _financialSuggestions = [];
-      });
-      return;
-    }
-
-    final income = (financialData['Income'] as num?)?.toDouble() ?? 0.0;
-    final savings = (financialData['Savings'] as num?)?.toDouble() ?? 0.0;
-    final expenditure = (financialData['Expenditure'] as num?)?.toDouble() ?? 0.0;
-    final deduction = (financialData['Deduction'] as num?)?.toDouble() ?? 0.0;
-
-    final needs = expenditure + deduction;
-    final expectedSavings = income * 0.20;
-
-    final isNeedsWithinLimit = needs <= income * 0.50;
-    final isSavingsEnough = savings >= expectedSavings;
-
-    final followsRule = isNeedsWithinLimit && isSavingsEnough;
 
     setState(() {
-      _displayMessage = 'You plan to retire at $age years.';
-      _rules = _ageBasedRules[_getAgeCategory(age)] ?? [];
-      _financialStatus = followsRule
-          ? '✅ You are following the 50-30-20 rule!'
-          : '❌ You are not following the 50-30-20 rule. '
-              'Ensure your needs (₹${needs.toStringAsFixed(2)}) are ≤50% of income (₹${(income * 0.50).toStringAsFixed(2)}) '
-              'and savings (₹${savings.toStringAsFixed(2)}) are ≥20% of income (₹${expectedSavings.toStringAsFixed(2)}).';
-      _statusColor = followsRule ? Colors.green : Colors.red;
+      _isLoading = true;
+    });
 
-      if (followsRule) {
-        _financialSuggestions = _getFinancialSuggestions(currentAge, age, income);
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data()!;
+        final totalEssentialExpenses = (data['totalEssentialExpenses'] as num?)?.toDouble() ?? 0;
+        final totalOptionalExpenses = (data['totalOptionalExpenses'] as num?)?.toDouble() ?? 0;
+        _savings = (data['savings'] as num?)?.toDouble() ?? 0;
+        _originalSavings = _savings; // Store original savings
+        _monthlyExpenses = totalEssentialExpenses + totalOptionalExpenses;
+
+        // Get retirement goals
+        if (data['goalsSelected'] is List) {
+          for (var goal in data['goalsSelected']) {
+            if (goal is Map && goal['goal'] == 'Retirement') {
+              final currentAge = goal['currentAge'] ?? 0;
+              final retirementAge = goal['retirementAge'] ?? 0;
+              _yearsToRetirement = retirementAge - currentAge;
+              break;
+            }
+          }
+        }
+
+        // Calculate retirement needs (20 years of expenses)
+        final yearlyExpenses = _monthlyExpenses * 12;
+        _totalRetirementNeed = yearlyExpenses * 20;
+
+        // Calculate required monthly SIP to reach target
+        _requiredMonthlySIP = _calculateRequiredMonthlySIP(_totalRetirementNeed, _yearsToRetirement);
+
+        // Load existing retirement plan if available
+        await _loadRetirementPlan();
+
+        _investmentController.text = _sipAmount.toStringAsFixed(2);
+        _projectedAmount = _calculateSIPReturns(_sipAmount, 12, _yearsToRetirement);
+
+        // Calculate available savings after allocation
+        _savings = _originalSavings - _sipAmount;
+
+        _generateSuggestions();
+        _updateRetirementMessage();
       } else {
-        _financialSuggestions = [];
+        setState(() {
+          _isLoading = false;
+          _retirementMessage = 'No financial data found. Please complete your financial planning first.';
+        });
       }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _retirementMessage = 'Error fetching financial data: $e';
+      });
+    }
+  }
+
+  Future<void> _loadRetirementPlan() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid)
+          .get();
+          
+      if (snapshot.exists) {
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        
+        if (data.containsKey('retirement')) {
+          Map<String, dynamic> retirementData = data['retirement'];
+          setState(() {
+            _previousSipAmount = retirementData['monthlyTarget']?.toDouble() ?? 0;
+            _sipAmount = _previousSipAmount;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading retirement plan: $e');
+    }
+  }
+
+  void _generateSuggestions() {
+    final double shortfall = _totalRetirementNeed - _projectedAmount;
+
+    StringBuffer suggestions = StringBuffer();
+
+    if (shortfall > 0) {
+      suggestions.writeln('⚠️ You\'re currently projected to fall short by ₹${shortfall.toStringAsFixed(2)}');
+      suggestions.writeln('\n💡 To reach your target, you should:');
+      suggestions.writeln('- Invest ₹${_requiredMonthlySIP.toStringAsFixed(2)} monthly (currently ₹${_sipAmount.toStringAsFixed(2)})');
+      suggestions.writeln('\n💰 Reduce your monthly expenses to save more');
+    } else {
+      suggestions.writeln('✅ You\'re on track to meet your retirement goal!');
+    }
+
+    setState(() {
+      _suggestions = suggestions.toString();
     });
   }
 
-  List<String> _getFinancialSuggestions(int currentAge, int retirementAge, double income) {
-    final yearsToRetirement = retirementAge - currentAge;
-    final monthlySavings = income * 0.20 / 12; // 20% of income as monthly savings
-    final sipReturnRate = 0.12; // 12% annual return
-    final futureValue = _calculateSIPFutureValue(monthlySavings, sipReturnRate, yearsToRetirement);
-
-    return [
-      'Invest in a Systematic Investment Plan (SIP) with a 12% annual return.',
-      'Save ₹${monthlySavings.toStringAsFixed(2)} monthly for $yearsToRetirement years to accumulate ₹${futureValue.toStringAsFixed(2)}.',
-      'Diversify your portfolio with equity, debt, and gold investments.',
-      'Consider investing in a retirement-focused mutual fund or NPS (National Pension System).',
-      'Review your investment portfolio annually to ensure it aligns with your retirement goals.',
-    ];
+  void _updateRetirementMessage() {
+    setState(() {
+      _retirementMessage = 'You need ₹${_totalRetirementNeed.toStringAsFixed(2)} for retirement '
+          '(20 years of expenses).\n\n'
+          'To achieve this within $_yearsToRetirement years, investing '
+          '₹${_sipAmount.toStringAsFixed(2)} monthly in an SIP '
+          'would grow to approximately ₹${_projectedAmount.toStringAsFixed(2)} '
+          'at 12% annual return.';
+      _isLoading = false;
+    });
   }
 
-  double _calculateSIPFutureValue(double monthlySavings, double annualReturn, int years) {
-    final monthlyReturn = annualReturn / 12;
-    final months = years * 12;
-    double futureValue = 0;
+  double _calculateRequiredMonthlySIP(double targetAmount, int years) {
+    if (years <= 0 || targetAmount <= 0) return 0;
+    
+    double monthlyRate = 12 / 12 / 100;
+    int months = years * 12;
+    return (targetAmount * monthlyRate) / (pow(1 + monthlyRate, months) - 1);
+  }
 
-    for (int i = 0; i < months; i++) {
-      futureValue = (futureValue + monthlySavings) * (1 + monthlyReturn);
+  double _calculateSIPReturns(double principal, double rate, int years) {
+    if (years <= 0 || principal <= 0) return 0;
+    
+    double monthlyRate = rate / 12 / 100;
+    int months = years * 12;
+    return principal * (pow(1 + monthlyRate, months) - 1) / monthlyRate * (1 + monthlyRate);
+  }
+
+Future<void> _saveInvestment() async {
+    if (_currentUser == null || _sipAmount <= 0) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 1. First get current values from database
+      DocumentSnapshot financialSnapshot = await FirebaseFirestore.instance
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid)
+          .get();
+      
+      DocumentSnapshot investmentSnapshot = await FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid)
+          .get();
+
+      double currentSavings = (financialSnapshot.data() as Map<String, dynamic>)['savings']?.toDouble() ?? 0;
+      double oldMonthlyTarget = 0;
+      
+      if (investmentSnapshot.exists) {
+        Map<String, dynamic> investmentData = investmentSnapshot.data() as Map<String, dynamic>;
+        if (investmentData.containsKey('retirement')) {
+          oldMonthlyTarget = investmentData['retirement']['monthlyTarget']?.toDouble() ?? 0;
+        }
+      }
+
+      // 2. Calculate new savings amount
+      double newSavings = (currentSavings + oldMonthlyTarget) - _sipAmount;
+
+      // 3. Update both collections in a batch write
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      
+      // Update investments collection
+      DocumentReference investmentDoc = FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid);
+      
+      batch.set(investmentDoc, {
+        'retirement': {
+          'goal': 'Retirement',
+          'monthlyTarget': _sipAmount,
+          'targetAmount': _totalRetirementNeed,
+          'yearsToRetirement': _yearsToRetirement,
+          'lastUpdated': DateTime.now(),
+        }
+      }, SetOptions(merge: true));
+      
+      // Update financial planner with new savings
+      DocumentReference financialDoc = FirebaseFirestore.instance
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid);
+      
+      batch.update(financialDoc, {
+        'savings': newSavings,
+      });
+      
+      await batch.commit();
+      
+      // 4. Update local state
+      setState(() {
+        _previousSipAmount = _sipAmount;
+        _originalSavings = newSavings;
+        _savings = newSavings;
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Retirement plan updated successfully')),
+      );
+      
+      _updateRetirementMessage();
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save plan: $e')),
+      );
+    }
+  }
+
+  void _updateProjection(String value) {
+    final amount = double.tryParse(value) ?? 0;
+    
+    // Calculate maximum possible allocation
+    double maxAllocation = _originalSavings + _previousSipAmount;
+    
+    if (amount > maxAllocation) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot allocate more than ₹${maxAllocation.toStringAsFixed(2)}')),
+      );
+      return;
     }
 
-    return futureValue;
+    setState(() {
+      _sipAmount = amount;
+      _projectedAmount = _calculateSIPReturns(_sipAmount, 12, _yearsToRetirement);
+      // Calculate available after allocation
+      _savings = (_originalSavings + _previousSipAmount) - _sipAmount;
+      _generateSuggestions();
+      _updateRetirementMessage();
+    });
   }
-
-  String _getAgeCategory(int age) {
-    if (age >= 20 && age <= 30) return '20-30';
-    if (age >= 31 && age <= 40) return '31-40';
-    if (age >= 41 && age <= 50) return '41-50';
-    return '51+';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Early Retire',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Retirement Planning', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Plan your early retirement. Here are some tips:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text(
-                  "Current Age:",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 80,
-                  height: 40,
-                  child: TextField(
-                    controller: _currentAgeController,
-                    decoration: InputDecoration(
-                      suffixText: 'y',
-                      border: const OutlineInputBorder(),
-                      hintText: 'Age',
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 8,
-                      ),
-                    ),
-                    style: const TextStyle(fontSize: 15),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text(
-                  "Retirement Age:",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 80,
-                  height: 40,
-                  child: TextField(
-                    controller: _ageController,
-                    decoration: InputDecoration(
-                      suffixText: 'y',
-                      border: const OutlineInputBorder(),
-                      hintText: 'Age',
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 8,
-                      ),
-                    ),
-                    style: const TextStyle(fontSize: 15),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Center(
-              child: ElevatedButton(
-                onPressed: _evaluateRetirementPlan,
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (_displayMessage != null)
-              Text(
-                _displayMessage!,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            const SizedBox(height: 16),
-            if (_financialStatus != null)
-              Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.circle,
-                    color: _statusColor,
-                    size: 24,
+                  Card(
+                    color: Colors.blue[50],
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Retirement Goal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          Text(_retirementMessage, style: const TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _financialStatus!,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: _statusColor,
+                  
+                  const SizedBox(height: 20),
+                  
+                  Card(
+                    color: Colors.green[50],
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Recommendations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          Text(_suggestions, style: const TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Your Retirement Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Current Monthly Investment: ₹${_sipAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Original Savings: ₹${_originalSavings.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            'Available After Allocation: ₹${_savings.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 20),
+                          TextField(
+                            controller: _investmentController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'New Monthly Investment (₹)',
+                              border: const OutlineInputBorder(),
+                              suffixText: '₹',
+                            ),
+                            onChanged: _updateProjection,
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _saveInvestment,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                            child: const Text('Save Plan'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            const SizedBox(height: 16),
-            if (_rules.isNotEmpty)
-              const Text(
-                'Helpful tips for Your Retirement:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            const SizedBox(height: 8),
-            for (String rule in _rules)
-              Text(
-                '- $rule',
-                style: const TextStyle(fontSize: 16),
-              ),
-            const SizedBox(height: 16),
-            if (_financialSuggestions.isNotEmpty)
-              const Text(
-                'Financial Planning Suggestions:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            const SizedBox(height: 8),
-            for (String suggestion in _financialSuggestions)
-              Text(
-                '- $suggestion',
-                style: const TextStyle(fontSize: 16),
-              ),
-          ],
-        ),
-      ),
+            ),
     );
+  }
+
+  @override
+  void dispose() {
+    _investmentController.dispose();
+    super.dispose();
   }
 }

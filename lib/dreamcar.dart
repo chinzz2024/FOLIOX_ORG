@@ -17,7 +17,10 @@ class _DreamcarPageState extends State<DreamcarPage> {
   double progress = 0.0;
   String savingsRecommendation = '';
   bool isTargetReached = false;
-  
+ double _totalInvested = 0.0;
+List<Map<String, dynamic>> _investmentHistory = [];
+bool _isLoading = true;
+String _errorMessage = '';
   double totalSavings = 0.0;
   late final TextEditingController targetAmountController;
   late final TextEditingController yearsController;
@@ -25,8 +28,6 @@ class _DreamcarPageState extends State<DreamcarPage> {
   late final TextEditingController interestController;
   late final TextEditingController tenureController;
   User? _currentUser;
-  bool _isLoading = true;
-  String _errorMessage = '';
 
   @override
   void initState() {
@@ -48,8 +49,7 @@ class _DreamcarPageState extends State<DreamcarPage> {
     targetAmountController.addListener(_scheduleSavingsCalculation);
     yearsController.addListener(_scheduleSavingsCalculation);
   }
-
-  Future<void> _fetchFinancialData() async {
+   Future<void> _fetchFinancialData() async {
     if (_currentUser == null) return;
 
     setState(() {
@@ -58,50 +58,166 @@ class _DreamcarPageState extends State<DreamcarPage> {
     });
 
     try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+      // 1. Get financial data (unchanged)
+      DocumentSnapshot financialSnapshot = await FirebaseFirestore.instance
           .collection('financialPlanner')
           .doc(_currentUser!.uid)
           .get();
 
       if (!mounted) return;
 
-      if (snapshot.exists) {
-        Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
-        
+      if (financialSnapshot.exists) {
+        Map<String, dynamic>? data = financialSnapshot.data() as Map<String, dynamic>?;
         if (data != null) {
           setState(() {
-            // Calculate liquid cash (savings + current accounts)
-           totalSavings = (data['assets']?['savingsAccount'] ?? 0).toDouble() +
-                         (data['assets']?['currentAccount'] ?? 0).toDouble();
-            
-            // Get total savings
             totalSavings = (data['savings'] ?? 0).toDouble();
-
-            _isLoading = false;
-
-            if (totalSavings == 0 && totalSavings == 0) {
-              _errorMessage = 'No savings data found. Please add your financial details first.';
-            }
           });
         }
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'No financial data found. Please complete your financial planning first.';
-        });
       }
+
+      // 2. Load investments with nested structure
+      await _loadInvestments();
+
+      setState(() {
+        _isLoading = false;
+      });
+
     } catch (e) {
       if (!mounted) return;
-      
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load financial data: ${e.toString()}';
-        totalSavings = 0.0;
         totalSavings = 0.0;
       });
     }
   }
 
+
+  Future<void> _loadInvestments() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid)
+          .get();
+          
+      if (snapshot.exists) {
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        
+        // Access nested dreamCar data
+        if (data.containsKey('dreamCar')) {
+          Map<String, dynamic> dreamCarData = data['dreamCar'];
+          setState(() {
+            _totalInvested = dreamCarData['totalInvested']?.toDouble() ?? 0.0;
+            // Initialize controllers with existing values if available
+            targetAmountController.text = (dreamCarData['targetAmount']?.toString() ?? '500000');
+            progress = (_totalInvested / (double.tryParse(targetAmountController.text) ?? 1)) * 100;
+            isTargetReached = progress >= 100;
+          });
+        }
+        
+        // Load investment history (unchanged)
+        QuerySnapshot history = await FirebaseFirestore.instance
+            .collection('investments')
+            .doc(_currentUser!.uid)
+            .collection('history')
+            .orderBy('date', descending: true)
+            .get();
+            
+        setState(() {
+          _investmentHistory = history.docs.map((doc) {
+            return {
+              'amount': doc['amount'],
+              'date': (doc['date'] as Timestamp).toDate(),
+            };
+          }).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading investments: $e');
+    }
+  }
+
+ 
+  Future<void> _startMonthlyInvestment(double amount) async {
+    if (_currentUser == null) return;
+
+    if (amount > totalSavings) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Insufficient savings! You only have ₹${totalSavings.toStringAsFixed(2)}')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      
+      // 1. Update investments collection with NESTED structure
+      DocumentReference investmentDoc = FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid);
+      
+      batch.set(investmentDoc, {
+        'dreamCar': {
+          'goal': 'DreamCar',
+          'totalInvested': FieldValue.increment(amount),
+          'monthlyTarget': monthlySavings,
+          'targetAmount': double.tryParse(targetAmountController.text),
+          'lastUpdated': DateTime.now(),
+        }
+      }, SetOptions(merge: true));
+      
+      // 2. Add to investment history (unchanged)
+      DocumentReference historyDoc = investmentDoc
+          .collection('history')
+          .doc();
+      
+      batch.set(historyDoc, {
+        'amount': amount,
+        'date': DateTime.now(),
+        'type': 'car_investment',
+      });
+      
+      // 3. Deduct from main savings (unchanged)
+      DocumentReference financialDoc = FirebaseFirestore.instance
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid);
+      
+      batch.update(financialDoc, {
+        'savings': FieldValue.increment(-amount),
+      });
+      
+      await batch.commit();
+      
+      setState(() {
+        _totalInvested += amount;
+        totalSavings -= amount;
+        progress = (_totalInvested / (double.tryParse(targetAmountController.text) ?? 1) * 100);
+        isTargetReached = progress >= 100;
+        _isLoading = false;
+        
+        _investmentHistory.insert(0, {
+          'amount': amount,
+          'date': DateTime.now(),
+        });
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('₹${amount.toStringAsFixed(2)} invested (Deducted from savings)')),
+      );
+      
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Investment failed: ${e.toString()}')),
+      );
+    }
+  }
   void _scheduleSavingsCalculation() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       calculateMonthlySavings();
@@ -114,39 +230,40 @@ class _DreamcarPageState extends State<DreamcarPage> {
     double futureValue = principal * (pow(1 + monthlyRate, months) - 1) / monthlyRate * (1 + monthlyRate);
     return futureValue;
   }
+void calculateMonthlySavings() {
+  double targetAmount = double.tryParse(targetAmountController.text) ?? 0;
+  int years = int.tryParse(yearsController.text) ?? 0;
 
-  void calculateMonthlySavings() {
-    double currentSavings = totalSavings;
-    double targetAmount = double.tryParse(targetAmountController.text) ?? 0;
-    int years = int.tryParse(yearsController.text) ?? 0;
+  if (years > 0 && targetAmount > 0) {
+    // Calculate required monthly SIP to reach target in given years at 12% return
+    double monthlyRate = 12 / 12 / 100; // 12% annual return
+    int months = years * 12;
+    
+    // Formula: P = (FV * r) / [(1+r)^n - 1]
+    double requiredMonthlySIP = (targetAmount * monthlyRate) / 
+        (pow(1 + monthlyRate, months) - 1);
+    
+    setState(() {
+      monthlySavings = requiredMonthlySIP;
+      progress = 0; // Starts at 0% since no investments made yet
+      savingsRecommendation = '''
+Savings Plan:
 
-    if (years > 0 && targetAmount > 0) {
-      double recommendedInvestment = currentSavings * 0.2; // Invest 20% of liquid cash
-      double sipReturns = calculateSIPReturns(recommendedInvestment, 12, years);
-      
-      setState(() {
-        double remainingAmount = targetAmount - sipReturns;
-        monthlySavings = remainingAmount > 0 ? remainingAmount / (years * 12) : 0;
-        progress = (sipReturns / targetAmount) * 100;
-        savingsRecommendation = '''
-Savings Breakdown:
-
-- Recommended Investment (20%): ₹${recommendedInvestment.toStringAsFixed(2)}
-- Projected SIP Returns in $years years: ₹${sipReturns.toStringAsFixed(2)} at 12% return
 - Target Amount: ₹${targetAmount.toStringAsFixed(2)}
+- Time Frame: $years years
+- Required Monthly SIP: ₹${requiredMonthlySIP.toStringAsFixed(2)} at 12% return
 ''';
-        isTargetReached = sipReturns >= targetAmount;
-      });
-    } else {
-      setState(() {
-        monthlySavings = 0;
-        progress = 0;
-        savingsRecommendation = '';
-        isTargetReached = false;
-      });
-    }
+      isTargetReached = false;
+    });
+  } else {
+    setState(() {
+      monthlySavings = 0;
+      progress = 0;
+      savingsRecommendation = '';
+      isTargetReached = false;
+    });
   }
-
+}
   void showEMICalculator() {
     showModalBottomSheet(
       context: context,
@@ -277,9 +394,12 @@ Savings Breakdown:
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+  icon: const Icon(Icons.arrow_back, color: Colors.white),
+  onPressed: () {
+    // Return true if investments were made, false otherwise
+    Navigator.pop(context, _totalInvested > 0);
+  },
+),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -366,57 +486,49 @@ Savings Breakdown:
               ),
               const SizedBox(height: 20),
 
-              if (savingsRecommendation.isNotEmpty) ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Savings Plan',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        Text(savingsRecommendation),
-                        const SizedBox(height: 20),
-                        LinearProgressIndicator(
-                          value: progress / 100,
-                          minHeight: 10,
-                          backgroundColor: Colors.grey[300],
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                        ),
-                        const SizedBox(height: 10),
-                        Text('Progress: ${progress.toStringAsFixed(2)}%',
-                            style: const TextStyle(fontSize: 16)),
-                        const SizedBox(height: 20),
-                        if (!isTargetReached) ...[
-                          const Text('Action Needed:',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
-                          const SizedBox(height: 10),
-                          Text('You need to save ₹${monthlySavings.toStringAsFixed(2)} per month',
-                              style: const TextStyle(fontSize: 16)),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _allocateSavingsToGoal,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50),
-                            ),
-                            child: const Text('Allocate Savings to Goal'),
-                          ),
-                        ] else ...[
-                          const Text('Congratulations!',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
-                          const Text('You have enough savings for your dream car!',
-                              style: const TextStyle(fontSize: 16)),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+           if (savingsRecommendation.isNotEmpty) ...[
+  Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Savings Plan',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          Text(savingsRecommendation),
+          const SizedBox(height: 20),
+          LinearProgressIndicator(
+            value: progress / 100,
+            minHeight: 10,
+            backgroundColor: Colors.grey[300],
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+          ),
+          const SizedBox(height: 10),
+          Text('Progress: ${progress.toStringAsFixed(2)}%',
+              style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Implement investment logic here
+              _startMonthlyInvestment(monthlySavings);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+            ),
+            child: Text('Invest ₹${monthlySavings.toStringAsFixed(2)} Monthly'),
+          ),
+          const SizedBox(height: 10),
+          const Text('Note: Progress will update as you make investments',
+              style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ],
+      ),
+    ),
+  ),
+],
             ],
-
             // EMI Details
             if (isEMISelected && emi > 0) ...[
               const SizedBox(height: 20),

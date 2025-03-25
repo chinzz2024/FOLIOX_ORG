@@ -8,9 +8,13 @@ import 'retire.dart';
 import 'dream.dart';
 import 'emergency.dart';
 import 'marriage.dart';
+import 'dart:async'; // Add this at the top of your file
 
 class SummaryPage extends StatefulWidget {
-  const SummaryPage({super.key});
+  const SummaryPage({super.key, this.shouldRefresh = false});
+
+  final bool shouldRefresh;
+  
 
   @override
   State<SummaryPage> createState() => _SummaryPageState();
@@ -25,89 +29,145 @@ class _SummaryPageState extends State<SummaryPage> {
   Map<String, double> essentialExpensesMap = {};
   Map<String, double> optionalExpensesMap = {};
   List<String> goalsSelected = [];
-  // Marriage-specific variables
+  String _errorMessage = '';
   String? selectedGoal;
   double marriageBudget = 0;
+  bool _hasError = false;
+
   int marriageYears = 0;
   String inflationResult = '';
   String sipSuggestion = '';
   String fdSuggestion = '';
 
   @override
-  void initState() {
-    super.initState();
-    _fetchFinancialData();
-  }
+void initState() {
+  super.initState();
+  _fetchFinancialData(); // Keep your existing initialization
+}
 
-Future<void> _fetchFinancialData() async {
-  String? userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null) return;
-
-  try {
-    // Fetch data from Firestore
-    DocumentSnapshot snapshot = await FirebaseFirestore.instance
-        .collection('financialPlanner')
-        .doc(userId)
-        .get();
-
-    if (snapshot.exists) {
-      Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
-
-      if (data != null) {
-        setState(() {
-          // Fetch income
-          income = (data['totalIncome'] ?? 0).toDouble();
-
-          // Fetch essential expenses
-          essentialExpensesMap = Map<String, double>.from(data['essentialExpenses'] ?? {});
-          essentialExpenses = (data['totalEssentialExpenses'] ?? 0).toDouble();
-
-          // Fetch optional expenses
-          optionalExpensesMap = Map<String, double>.from(data['optionalExpenses'] ?? {});
-          optionalExpenses = (data['totalOptionalExpenses'] ?? 0).toDouble();
-
-          // Fetch savings
-          savings = (data['savings'] ?? 0).toDouble();
-
-          // Fetch selected goals
-          List<dynamic>? goals = data['goalsSelected'];
-          goalsSelected = goals != null 
-              ? goals.map((goal) {
-                  // Handle both string and map types
-                  if (goal is Map) {
-                    return goal['goal']?.toString() ?? '';
-                  }
-                  return goal.toString();
-                }).toList()
-              : [];
-
-          // Fetch marriage-specific details if Marriage is a selected goal
-          if (goalsSelected.contains('Marriage')) {
-            marriageBudget = (data['estimatedBudget'] ?? 0).toDouble();
-            marriageYears = (data['targetYear'] ?? 0);
-            _calculateMarriageDetails();
-          }
-
-          isLoading = false;
-        });
-      }
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No financial data found!')),
-      );
-    }
-  } catch (error) {
-    setState(() {
-      isLoading = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to fetch data: $error')),
-    );
+@override
+void didUpdateWidget(SummaryPage oldWidget) {
+  super.didUpdateWidget(oldWidget);
+  if (widget.shouldRefresh && !oldWidget.shouldRefresh) {
+    _fetchFinancialData(); // Add this new method
   }
 }
+
+Future<void> _fetchFinancialData() async {
+  if (!mounted) return;
+  
+  setState(() {
+    isLoading = true;
+    _hasError = false;
+    _errorMessage = '';
+  });
+
+  try {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _handleError('User not authenticated');
+      return;
+    }
+
+    final DocumentSnapshot snapshot = await FirebaseFirestore.instance
+        .collection('financialPlanner')
+        .doc(user.uid)
+        .get()
+        .timeout(const Duration(seconds: 10));
+
+    if (!snapshot.exists) {
+      _handleError('No financial data found');
+      return;
+    }
+
+    final data = snapshot.data() as Map<String, dynamic>?;
+    if (data == null) {
+      _handleError('Invalid data format');
+      return;
+    }
+
+    // Parse and update state
+    if (mounted) {
+      setState(() {
+        income = _parseDouble(data['totalIncome']);
+        essentialExpenses = _parseDouble(data['totalEssentialExpenses']);
+        optionalExpenses = _parseDouble(data['totalOptionalExpenses']);
+        savings = _parseDouble(data['savings']);
+        
+        // Parse expenses maps
+        essentialExpensesMap = data['essentialExpenses'] is Map 
+            ? Map<String, double>.from(data['essentialExpenses'])
+            : {};
+        optionalExpensesMap = data['optionalExpenses'] is Map
+            ? Map<String, double>.from(data['optionalExpenses'])
+            : {};
+
+        // Parse goals
+        goalsSelected = _parseGoals(data['goalsSelected']);
+
+        // Handle marriage data if needed
+        if (goalsSelected.contains('Marriage')) {
+          marriageBudget = _parseDouble(data['estimatedBudget']);
+          marriageYears = _parseInt(data['targetYear']);
+          _calculateMarriageDetails();
+        }
+
+        isLoading = false;
+      });
+    }
+  } on FirebaseException catch (e) {
+    _handleError('Database error: ${e.message}');
+  } on TimeoutException {
+    _handleError('Request timed out. Please try again');
+  } catch (e) {
+    _handleError('An unexpected error occurred');
+  }
+}
+
+// Helper methods:
+
+List<String> _parseGoals(dynamic goalsData) {
+  if (goalsData is! List) return [];
+  return goalsData.map((goal) {
+    if (goal is Map) return goal['goal']?.toString() ?? '';
+    return goal.toString();
+  }).toList();
+}
+
+double _parseDouble(dynamic value) {
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
+}
+
+int _parseInt(dynamic value) {
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
+void _handleError(String message) {
+  if (!mounted) return;
+  
+  setState(() {
+    isLoading = false;
+    _hasError = true;
+    _errorMessage = message;
+  });
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 3),
+    ),
+  );
+}
+
+
+
+
+
   // Calculate marriage-specific details
   void _calculateMarriageDetails() {
     if (marriageBudget > 0 && marriageYears > 0) {
@@ -132,13 +192,26 @@ Future<void> _fetchFinancialData() async {
       fdSuggestion = '';
     }
   }
-
 @override
 Widget build(BuildContext context) {
   if (isLoading) {
-    return const Scaffold(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Financial Summary'),
+        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+      ),
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(
+              'Updating your financial summary...',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -158,173 +231,187 @@ Widget build(BuildContext context) {
       title: const Text('Financial Summary'),
       backgroundColor: const Color.fromARGB(255, 12, 6, 37),
     ),
-    body: SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Green or Red Light with investment advice
-          Center(
-            child: Column(
-              children: [
-                Icon(
-                  isFollowingRule ? Icons.check_circle : Icons.error,
-                  color: isFollowingRule ? Colors.green : Colors.red,
-                  size: 100,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  isFollowingRule
-                      ? 'Great! You are following the 50-30-20 rule!'
-                      : 'You are NOT following the 50-30-20 rule.',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+    body: RefreshIndicator(
+      onRefresh: _fetchFinancialData,
+      color: Colors.blue,
+      backgroundColor: Colors.white,
+      displacement: 40.0,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Green or Red Light with investment advice
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    isFollowingRule ? Icons.check_circle : Icons.error,
                     color: isFollowingRule ? Colors.green : Colors.red,
+                    size: 100,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
+                  Text(
+                    isFollowingRule
+                        ? 'Great! You are following the 50-30-20 rule!'
+                        : 'You are NOT following the 50-30-20 rule.',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isFollowingRule ? Colors.green : Colors.red,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
 
-                // Show investment suggestions only if following the rule
-                if (isFollowingRule) ...[
-                  _buildInvestmentSuggestions(),
+                  // Show investment suggestions only if following the rule
+                  if (isFollowingRule) ...[
+                    _buildInvestmentSuggestions(),
+                  ],
                 ],
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Income
-          _buildFinancialRow('Income', income),
-          const SizedBox(height: 10),
-
-          // Essential Expenses
-          _buildFinancialRow('Essential Expenses (Needs)', essentialExpenses,
-              percentage: needsPercentage),
-          const SizedBox(height: 10),
-
-          // Optional Expenses
-          _buildFinancialRow('Optional Expenses (Wants)', optionalExpenses,
-              percentage: wantsPercentage),
-          const SizedBox(height: 10),
-
-          // Savings
-          _buildFinancialRow('Savings', savings,
-              percentage: savingsPercentage),
-          const SizedBox(height: 20),
-
-          // Rule Breakdown
-          const Text(
-            '50-30-20 Rule Breakdown:',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          _buildRuleRow('Needs (50%)', needsPercentage, 50),
-          _buildRuleRow('Wants (30%)', wantsPercentage, 30),
-          _buildRuleRow('Savings (20%)', savingsPercentage, 20),
-
-          // Marriage-specific details
-          if (selectedGoal == 'Marriage') ...[
-            const SizedBox(height: 20),
-            const Text(
-              'Marriage Planning:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            if (inflationResult.isNotEmpty)
-              Text(inflationResult,
-                  style: const TextStyle(fontSize: 16, color: Colors.red)),
-            if (sipSuggestion.isNotEmpty)
-              Text(sipSuggestion,
-                  style: const TextStyle(fontSize: 16, color: Colors.green)),
-            if (fdSuggestion.isNotEmpty)
-              Text(fdSuggestion,
-                  style: const TextStyle(fontSize: 16, color: Colors.blue)),
-            const SizedBox(height: 20),
-          ],
-
-          // Recommendations
-          if (!isFollowingRule) ...[
-            const SizedBox(height: 20),
-            const Text(
-              'Recommendations:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            ..._buildRecommendations(needsPercentage, wantsPercentage),
-          ],
-
-          if (goalsSelected.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            const Text(
-              'Your Selected Goals:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // Income
+            _buildFinancialRow('Income', income),
             const SizedBox(height: 10),
-            Column(
-              children: goalsSelected.map((goal) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: GestureDetector(
-                    onTap: () {
-                      if (!mounted) return;
-                      
-                      // Goal-specific navigation
-                      switch (goal) {
-                        case 'Marriage':
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => Marriage()),
-                          );
-                          break;
-                        case 'Dream Car':
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => DreamcarPage()),
-                          );
-                          break;
-                        case 'Retirement':
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => RetireEarly()),
-                          );
-                          break;
-                        case 'Dream Home':
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => DreamHomeScreen()),
-                          );
-                          break;
-                        case 'Emergency Fund':
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => EmergencyFund()),
-                          );
-                          break;
-                      }
-                    },
-                    child: Text(
-                      '👉 Click here to plan for $goal', 
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
+
+            // Essential Expenses
+            _buildFinancialRow('Essential Expenses (Needs)', essentialExpenses,
+                percentage: needsPercentage),
+            const SizedBox(height: 10),
+
+            // Optional Expenses
+            _buildFinancialRow('Optional Expenses (Wants)', optionalExpenses,
+                percentage: wantsPercentage),
+            const SizedBox(height: 10),
+
+            // Savings
+            _buildFinancialRow('Savings', savings,
+                percentage: savingsPercentage),
+            const SizedBox(height: 20),
+
+            // Rule Breakdown
+            const Text(
+              '50-30-20 Rule Breakdown:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            _buildRuleRow('Needs (50%)', needsPercentage, 50),
+            _buildRuleRow('Wants (30%)', wantsPercentage, 30),
+            _buildRuleRow('Savings (20%)', savingsPercentage, 20),
+
+            // Marriage-specific details
+            if (selectedGoal == 'Marriage') ...[
+              const SizedBox(height: 20),
+              const Text(
+                'Marriage Planning:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              if (inflationResult.isNotEmpty)
+                Text(inflationResult,
+                    style: const TextStyle(fontSize: 16, color: Colors.red)),
+              if (sipSuggestion.isNotEmpty)
+                Text(sipSuggestion,
+                    style: const TextStyle(fontSize: 16, color: Colors.green)),
+              if (fdSuggestion.isNotEmpty)
+                Text(fdSuggestion,
+                    style: const TextStyle(fontSize: 16, color: Colors.blue)),
+              const SizedBox(height: 20),
+            ],
+
+            // Recommendations
+            if (!isFollowingRule) ...[
+              const SizedBox(height: 20),
+              const Text(
+                'Recommendations:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              ..._buildRecommendations(needsPercentage, wantsPercentage),
+            ],
+
+            if (goalsSelected.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              const Text(
+                'Your Selected Goals:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Column(
+                children: goalsSelected.map((goal) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: GestureDetector(
+                      onTap: () async {
+                        if (!mounted) return;
+                        
+                        // Goal-specific navigation
+                        switch (goal) {
+                          case 'Marriage':
+                            await Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (context) => Marriage()),
+                            );
+                            _fetchFinancialData();
+                            break;
+                          case 'Dream Car':
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DreamcarPage(),
+                              ),
+                            );
+                            _fetchFinancialData();
+                            break;
+                          case 'Retirement':
+                            await Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (context) => RetireEarly()),
+                            );
+                            _fetchFinancialData();
+                            break;
+                          case 'Dream Home':
+                            await Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (context) => DreamHomeScreen()),
+                            );
+                            _fetchFinancialData();
+                            break;
+                          case 'Emergency Fund':
+                            await Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (context) => EmergencyFund()),
+                            );
+                            _fetchFinancialData();
+                            break;
+                        }
+                      },
+                      child: Text(
+                        '👉 Click here to plan for $goal', 
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
+                  );
+                }).toList(),
+              ),
+            ],
+            
+            const SizedBox(height: 20), // Add some space at the bottom
           ],
-          
-          const SizedBox(height: 20), // Add some space at the bottom
-        ],
+        ),
       ),
     ),
   );
