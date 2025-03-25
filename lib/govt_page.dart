@@ -340,82 +340,111 @@ double _calculateCategoryTotal(Map<String, dynamic> category) {
   });
 }
 
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Details', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildGoalsSection(),
-            _buildSection('Income Details', [
-              _buildTextField('Base Salary', baseSalaryController),
-              _buildTextField(
-                  'Dearness Allowance', dearnessAllowanceController),
-              _buildTextField(
-                  'House Rent Allowance (HRA)', houseRentAllowanceController),
-              _buildTextField(
-                  'Transport Allowance', transportAllowanceController),
-            ]),
-            _buildSection('Essential Expenses', [
-              _buildTextField('Rent/Mortgage', rentMortgageController),
-              _buildTextField('Food & Groceries', foodGroceriesController),
-              _buildTextField('Insurance', insuranceController),
-              _buildTextField(
-                  'Medical & Healthcare', medicalExpensesController),
-              _buildTextField('Loan Repayments', loanRepaymentsController),
-            ]),
-            _buildSection('Optional Expenses', [
-              _buildTextField('Dining Out', diningOutController),
-              _buildTextField('Entertainment', entertainmentController),
-              _buildTextField('Travel & Vacations', travelVacationsController),
-              _buildTextField('Shopping', shoppingController),
-              _buildTextField('Fitness & Gym', fitnessGymController),
-              _buildTextField('Hobbies & Leisure', hobbiesLeisureController),
-            ]),
-            _buildSection('Assets', [
-              _buildTextField('Fixed Deposits', fixedDepositsController),
-              _buildTextField(
-                  'Recurring Deposits', recurringDepositsController),
-              _buildTextField('Savings Account', savingsAccountController),
-              _buildTextField('Current Account', currentAccountController),
-              _buildTextField(
-                  'Employee Provident Fund', employeeProvidentFundController),
-              _buildTextField(
-                  'Public Provident Fund', publicProvidentFundController),
-            ]),
-         const SizedBox(height: 24.0),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Details', style: TextStyle(color: Colors.white)),
+      backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+    ),
+    body: Stack(
+      children: [
+        // Background Image with Opacity
+        Opacity(
+          opacity: 0.3, // Adjust opacity here (0.0 - fully transparent, 1.0 - fully visible)
+          child: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/bgop.jpeg"), // Ensure this image exists
+                fit: BoxFit.cover, // Covers the entire screen
+              ),
+            ),
+          ),
+        ),
+        // Scrollable Content
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGoalsSection(),
+              _buildSection('Income Details', [
+                _buildTextField('Base Salary', baseSalaryController),
+                _buildTextField('Dearness Allowance', dearnessAllowanceController),
+                _buildTextField('House Rent Allowance (HRA)', houseRentAllowanceController),
+                _buildTextField('Transport Allowance', transportAllowanceController),
+              ]),
+              _buildSection('Essential Expenses', [
+                _buildTextField('Rent/Mortgage', rentMortgageController),
+                _buildTextField('Food & Groceries', foodGroceriesController),
+                _buildTextField('Insurance', insuranceController),
+                _buildTextField('Medical & Healthcare', medicalExpensesController),
+                _buildTextField('Loan Repayments', loanRepaymentsController),
+              ]),
+              _buildSection('Optional Expenses', [
+                _buildTextField('Dining Out', diningOutController),
+                _buildTextField('Entertainment', entertainmentController),
+                _buildTextField('Travel & Vacations', travelVacationsController),
+                _buildTextField('Shopping', shoppingController),
+                _buildTextField('Fitness & Gym', fitnessGymController),
+                _buildTextField('Hobbies & Leisure', hobbiesLeisureController),
+              ]),
+              _buildSection('Assets', [
+                _buildTextField('Fixed Deposits', fixedDepositsController),
+                _buildTextField('Recurring Deposits', recurringDepositsController),
+                _buildTextField('Savings Account', savingsAccountController),
+                _buildTextField('Current Account', currentAccountController),
+                _buildTextField('Employee Provident Fund', employeeProvidentFundController),
+                _buildTextField('Public Provident Fund', publicProvidentFundController),
+              ]),
+const SizedBox(height: 24.0),
 Center(
   child: Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween, // Push buttons to edges
     children: [
       Padding(
         padding: const EdgeInsets.only(left: 32.0), // Move more to left
-        child: ElevatedButton.icon(
-          onPressed: _saveToFirestore,
-          icon: const Icon(Icons.build), // Pencil icon
-          label: const Text('Update Savings'),
+        child: Container(
+          width: 150, // Set button width
+          height: 50,  // Set button height
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 71, 136, 189), // Blue background
+            borderRadius: BorderRadius.circular(8.0), // Slight rounded corners
+          ),
+          child: TextButton.icon(
+            onPressed: _saveToFirestore,
+            icon: const Icon(Icons.build, color: Colors.white),
+            label: const Text(
+              'Update',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         ),
       ),
       Padding(
         padding: const EdgeInsets.only(right: 32.0), // Move more to right
-        child: ElevatedButton.icon(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const SummaryPage(),
-              ),
-            );
-          },
-          icon: const Icon(Icons.edit), // Checkmark icon
-          label: const Text('Plan'),
+        child: Container(
+          width: 150, // Set button width
+          height: 50,  // Set button height
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 71, 136, 189), // Blue background
+            borderRadius: BorderRadius.circular(8.0), // Slight rounded corners
+          ),
+          child: TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SummaryPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.edit, color: Colors.white),
+            label: const Text(
+              'Plan',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         ),
       ),
     ],
@@ -426,7 +455,9 @@ Center(
           ],
         ),
       ),
-    );
+    ])
+    
+  );
   }
 
   Widget _buildGoalsSection() {
