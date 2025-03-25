@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class DreamHome extends StatefulWidget {
-  const DreamHome({Key? key}) : super(key: key);
+  const DreamHome({super.key});
 
   @override
   State<DreamHome> createState() => _DreamHomeState();
