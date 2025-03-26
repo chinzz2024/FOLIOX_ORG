@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+
 import 'home_page.dart';
 
 class StockNewsPage extends StatefulWidget {
@@ -17,8 +18,8 @@ class _StockNewsPageState extends State<StockNewsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<dynamic> stockNews = [];
-  List<dynamic> myStockNews = []; // List for saved stock news
-  List<String> purchasedStocks = []; // Dynamically fetched purchased stocks
+  List<dynamic> myStockNews = [];
+  List<String> purchasedStocks = [];
   bool isLoading = true;
   String errorMessage = '';
 
@@ -26,7 +27,7 @@ class _StockNewsPageState extends State<StockNewsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _initializePurchasedStocks(); // Fetch user's purchased stocks
+    _initializePurchasedStocks();
     fetchStockNews();
   }
 
@@ -61,14 +62,14 @@ Future<void> _initializePurchasedStocks() async {
 }
 
   Future<void> fetchStockNews() async {
-    const url = 'http://127.0.0.1:5000/stock-news'; // Backend API URL
+    const url = 'http://127.0.0.1:5000/stock-news';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         setState(() {
           stockNews = json.decode(response.body);
           isLoading = false;
-          _moveMatchingNewsToMyStockNews(); // Check if any stock news matches user's purchased stocks
+          _moveMatchingNewsToMyStockNews();
         });
       } else {
         setState(() {
@@ -84,24 +85,18 @@ Future<void> _initializePurchasedStocks() async {
     }
   }
 
-  // Function to check if any stock news matches the user's purchased stocks
   void _moveMatchingNewsToMyStockNews() {
     List<dynamic> matchingNews = [];
     for (var news in stockNews) {
       for (var stock in purchasedStocks) {
         if (news['title'] != null && news['title'].toString().contains(stock)) {
-          matchingNews.add(
-              news); // Add news to "My Stock News" if title contains a purchased stock symbol
+          matchingNews.add(news);
         }
       }
     }
     setState(() {
-      myStockNews.addAll(matchingNews); // Add matching news to My Stock News
+      myStockNews.addAll(matchingNews);
     });
-
-    // Log the saved news to the console for debugging
-    debugPrint(
-        'Matching News: ${myStockNews.map((news) => news['title']).toList()}');
   }
 
   Future<void> _openUrl(String url) async {
@@ -115,84 +110,206 @@ Future<void> _initializePurchasedStocks() async {
     }
   }
 
- 
+  Widget _buildNewsCard(dynamic news, {bool isMyStock = false}) {
+    return Card(
+      elevation: 5,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.blue.shade50,  // Light blue background for all cards
+              Colors.white
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(12),
+          title: Text(
+            news['title'] ?? 'No Title',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                news['source'] ?? 'Unknown Source',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      news['link'] ?? 'No Link',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        decoration: TextDecoration.underline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          trailing: Icon(
+            Icons.open_in_new,
+            color: Colors.black,
+          ),
+          onTap: () => _openUrl(news['link'] ?? ''),
+        ),
+      ),
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stock News', style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            // Navigate back to Stock Page (Homepage)
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const Homepage()),
-              (route) => false, // Clear all previous routes
-            );
-          },
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color.fromARGB(255, 235, 235, 235), Color.fromARGB(255, 47, 146, 179), Color.fromARGB(255, 110, 153, 171)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-        bottom: TabBar(
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent, // Makes the scaffold transparent
+        appBar: AppBar(
+          title: const Text(
+            'Stock News',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const Homepage()),
+                (route) => false,
+              );
+            },
+          ),
+          backgroundColor: Color(0xFF0F2027), // Transparent to blend with gradient
+          elevation: 0,
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.white,
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.article),
+                    SizedBox(width: 8),
+                    Text('Stock News'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.bookmark),
+                    SizedBox(width: 8),
+                    Text('My Stock News'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: TabBarView(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Stock News'),
-            Tab(text: 'My Stock News'),
+          children: [
+            isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
+                  )
+                : errorMessage.isNotEmpty
+                    ? Center(
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: fetchStockNews,
+                        child: ListView.builder(
+                          itemCount: stockNews.length,
+                          itemBuilder: (context, index) {
+                            final news = stockNews[index];
+                            return _buildNewsCard(news);
+                          },
+                        ),
+                      ),
+            myStockNews.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.article_outlined,
+                          size: 100,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'No saved stock news',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: fetchStockNews,
+                    child: ListView.builder(
+                      itemCount: myStockNews.length,
+                      itemBuilder: (context, index) {
+                        final news = myStockNews[index];
+                        return _buildNewsCard(news);
+                      },
+                    ),
+                  ),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Stock News tab
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : errorMessage.isNotEmpty
-                  ? Center(
-                      child: Text(
-                        errorMessage,
-                        style: const TextStyle(color: Colors.red, fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: stockNews.length,
-                      itemBuilder: (context, index) {
-                        final news = stockNews[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          child: ListTile(
-                            title: Text(news['title'] ?? 'No Title'),
-                            subtitle: Text(news['link'] ?? 'No Link'),
-                            onTap: () => _openUrl(news['link'] ?? ''),
-                          
-                          ),
-                        );
-                      },
-                    ),
+    ),
+  );
+}
 
-          // My Stock News tab
-          myStockNews.isEmpty
-              ? const Center(child: Text('No saved stock news'))
-              : ListView.builder(
-                  itemCount: myStockNews.length,
-                  itemBuilder: (context, index) {
-                    final news = myStockNews[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      child: ListTile(
-                        title: Text(news['title'] ?? 'No Title'),
-                        subtitle: Text(news['link'] ?? 'No Link'),
-                        onTap: () => _openUrl(news['link'] ?? ''),
-                      ),
-                    );
-                  },
-                ),
-        ],
-      ),
-    );
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 }
