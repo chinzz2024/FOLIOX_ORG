@@ -366,6 +366,7 @@ Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
       title: const Text('Details', style: TextStyle(color: Colors.white)),
+      leading : IconButton(onPressed: ()=> Navigator.pop(context), icon: Icon(Icons.arrow_back,color:Colors.white)),
       backgroundColor: const Color.fromARGB(255, 12, 6, 37),
     ),
     body: Stack(

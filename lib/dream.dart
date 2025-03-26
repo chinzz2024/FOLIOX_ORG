@@ -355,7 +355,7 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Dream Home', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        backgroundColor: Color(0xFF0F2027),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),

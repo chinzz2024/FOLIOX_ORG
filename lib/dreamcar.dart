@@ -15,11 +15,22 @@ class _DreamcarPageState extends State<DreamcarPage> {
   double emi = 0.0;
   double monthlySavings = 0.0;
   String savingsRecommendation = '';
+<<<<<<< HEAD
  double _totalInvested = 0.0;
 List<Map<String, dynamic>> _investmentHistory = [];
 bool _isLoading = true;
 String _errorMessage = '';
+=======
+  bool isTargetReached = false;
+  double _totalInvested = 0.0;
+  List<Map<String, dynamic>> _investmentHistory = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
   double totalSavings = 0.0;
+  bool _hasCalculatedSavings = false;
+  bool _hasCalculatedEMI = false;
+  
   late final TextEditingController targetAmountController;
   late final TextEditingController yearsController;
   late final TextEditingController loanAmountController;
@@ -43,11 +54,9 @@ String _errorMessage = '';
       _isLoading = false;
       _errorMessage = 'Please log in to access this feature';
     }
-
-    targetAmountController.addListener(_scheduleSavingsCalculation);
-    yearsController.addListener(_scheduleSavingsCalculation);
   }
-   Future<void> _fetchFinancialData() async {
+
+  Future<void> _fetchFinancialData() async {
     if (_currentUser == null) return;
 
     setState(() {
@@ -56,7 +65,6 @@ String _errorMessage = '';
     });
 
     try {
-      // 1. Get financial data (unchanged)
       DocumentSnapshot financialSnapshot = await FirebaseFirestore.instance
           .collection('financialPlanner')
           .doc(_currentUser!.uid)
@@ -73,7 +81,6 @@ String _errorMessage = '';
         }
       }
 
-      // 2. Load investments with nested structure
       await _loadInvestments();
 
       setState(() {
@@ -90,6 +97,7 @@ String _errorMessage = '';
     }
   }
 
+<<<<<<< HEAD
 
 Future<void> _loadInvestments() async {
   try {
@@ -137,6 +145,9 @@ Future<void> _loadInvestments() async {
  Future<double> _getDreamCarAllocation() async {
     if (_currentUser == null) return 0.0;
     
+=======
+  Future<void> _loadInvestments() async {
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('investments')
@@ -145,9 +156,38 @@ Future<void> _loadInvestments() async {
           
       if (snapshot.exists) {
         Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+<<<<<<< HEAD
         if (data.containsKey('dreamCar')) {
           return data['dreamCar']['monthlyTarget']?.toDouble() ?? 0.0;
         }
+=======
+        
+        if (data.containsKey('dreamCar')) {
+          Map<String, dynamic> dreamCarData = data['dreamCar'];
+          setState(() {
+            _totalInvested = dreamCarData['totalInvested']?.toDouble() ?? 0.0;
+            targetAmountController.text = (dreamCarData['targetAmount']?.toString() ?? '500000');
+            progress = (_totalInvested / (double.tryParse(targetAmountController.text) ?? 1)) * 100;
+            isTargetReached = progress >= 100;
+          });
+        }
+        
+        QuerySnapshot history = await FirebaseFirestore.instance
+            .collection('investments')
+            .doc(_currentUser!.uid)
+            .collection('history')
+            .orderBy('date', descending: true)
+            .get();
+            
+        setState(() {
+          _investmentHistory = history.docs.map((doc) {
+            return {
+              'amount': doc['amount'],
+              'date': (doc['date'] as Timestamp).toDate(),
+            };
+          }).toList();
+        });
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
       }
     } catch (e) {
       print('Error getting dream car allocation: $e');
@@ -155,7 +195,11 @@ Future<void> _loadInvestments() async {
     return 0.0;
   }
 
+<<<<<<< HEAD
 Future<void> _startMonthlyInvestment(double amount) async {
+=======
+  Future<void> _startMonthlyInvestment(double amount) async {
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
     if (_currentUser == null) return;
 
     setState(() {
@@ -190,7 +234,10 @@ Future<void> _startMonthlyInvestment(double amount) async {
       // 3. Update both collections in a batch write
       WriteBatch batch = FirebaseFirestore.instance.batch();
       
+<<<<<<< HEAD
       // Update investments collection
+=======
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
       DocumentReference investmentDoc = FirebaseFirestore.instance
           .collection('investments')
           .doc(_currentUser!.uid);
@@ -205,7 +252,20 @@ Future<void> _startMonthlyInvestment(double amount) async {
         }
       }, SetOptions(merge: true));
       
+<<<<<<< HEAD
       // Update financial planner with new savings
+=======
+      DocumentReference historyDoc = investmentDoc
+          .collection('history')
+          .doc();
+      
+      batch.set(historyDoc, {
+        'amount': amount,
+        'date': DateTime.now(),
+        'type': 'car_investment',
+      });
+      
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
       DocumentReference financialDoc = FirebaseFirestore.instance
           .collection('financialPlanner')
           .doc(_currentUser!.uid);
@@ -219,7 +279,13 @@ Future<void> _startMonthlyInvestment(double amount) async {
       // 4. Update local state
       setState(() {
         _totalInvested += amount;
+<<<<<<< HEAD
         totalSavings = newSavings;
+=======
+        totalSavings -= amount;
+        progress = (_totalInvested / (double.tryParse(targetAmountController.text) ?? 1)) * 100;
+        isTargetReached = progress >= 100;
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
         _isLoading = false;
         
         _investmentHistory.insert(0, {
@@ -241,6 +307,7 @@ Future<void> _startMonthlyInvestment(double amount) async {
       );
     }
   }
+<<<<<<< HEAD
 
 
   void _scheduleSavingsCalculation() {
@@ -248,6 +315,8 @@ Future<void> _startMonthlyInvestment(double amount) async {
       calculateMonthlySavings();
     });
   }
+=======
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
 
   double calculateSIPReturns(double principal, double rate, int years) {
     double monthlyRate = rate / 12 / 100;
@@ -255,6 +324,7 @@ Future<void> _startMonthlyInvestment(double amount) async {
     double futureValue = principal * (pow(1 + monthlyRate, months) - 1) / monthlyRate * (1 + monthlyRate);
     return futureValue;
   }
+<<<<<<< HEAD
 
 void calculateMonthlySavings() {
   double targetAmount = double.tryParse(targetAmountController.text) ?? 0;
@@ -272,20 +342,52 @@ void calculateMonthlySavings() {
     setState(() {
       monthlySavings = requiredMonthlySIP;
       savingsRecommendation = '''
+=======
+
+  void calculateMonthlySavings() {
+    double targetAmount = double.tryParse(targetAmountController.text) ?? 0;
+    int years = int.tryParse(yearsController.text) ?? 0;
+
+    if (years > 0 && targetAmount > 0) {
+      double monthlyRate = 12 / 12 / 100;
+      int months = years * 12;
+      double requiredMonthlySIP = (targetAmount * monthlyRate) / 
+          (pow(1 + monthlyRate, months) - 1);
+      
+      setState(() {
+        monthlySavings = requiredMonthlySIP;
+        progress = 0;
+        savingsRecommendation = '''
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
 Savings Plan:
 
 - Target Amount: ₹${targetAmount.toStringAsFixed(2)}
 - Time Frame: $years years
 - Required Monthly SIP: ₹${requiredMonthlySIP.toStringAsFixed(2)} at 12% return
 ''';
+<<<<<<< HEAD
     });
   } else {
     setState(() {
       monthlySavings = 0;
       savingsRecommendation = '';
     });
+=======
+        isTargetReached = false;
+        _hasCalculatedSavings = true;
+      });
+    } else {
+      setState(() {
+        monthlySavings = 0;
+        progress = 0;
+        savingsRecommendation = '';
+        isTargetReached = false;
+        _hasCalculatedSavings = false;
+      });
+    }
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
   }
-}
+
   void showEMICalculator() {
     showModalBottomSheet(
       context: context,
@@ -298,6 +400,7 @@ Savings Plan:
               setState(() {
                 emi = calculatedEMI;
                 isEMISelected = true;
+                _hasCalculatedEMI = true;
               });
             },
             loanAmountController: loanAmountController,
@@ -330,34 +433,6 @@ Savings Plan:
     );
   }
 
-  Future<void> _allocateSavingsToGoal() async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('financialPlanner')
-          .doc(_currentUser!.uid)
-          .update({
-            'goalsSelected': FieldValue.arrayUnion([
-              {
-                'goal': 'Dream Car',
-                'targetAmount': double.tryParse(targetAmountController.text) ?? 0,
-                'targetYears': int.tryParse(yearsController.text) ?? 0,
-                'allocatedAmount': totalSavings * 0.2,
-                'monthlySavingsNeeded': monthlySavings,
-                'createdAt': DateTime.now(),
-              }
-            ])
-          });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Successfully allocated savings to Dream Car goal')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to allocate savings: $e')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_currentUser == null) {
@@ -365,7 +440,7 @@ Savings Plan:
         appBar: AppBar(
           title: const Text('Dream Car Calculator', 
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+          backgroundColor: const Color(0xFF0F2027),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
@@ -418,19 +493,17 @@ Savings Plan:
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
         leading: IconButton(
-  icon: const Icon(Icons.arrow_back, color: Colors.white),
-  onPressed: () {
-    // Return true if investments were made, false otherwise
-    Navigator.pop(context, _totalInvested > 0);
-  },
-),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context, _totalInvested > 0);
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Current Financial Status
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -440,7 +513,6 @@ Savings Plan:
                     const Text('Current Financial Status',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 10),
-                    
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -490,7 +562,6 @@ Card(
 
    
 
-            // Purchase Method Selection
             const Text('How do you want to buy your car?',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
@@ -501,6 +572,7 @@ Card(
                     onPressed: () {
                       setState(() {
                         isEMISelected = false;
+                        _hasCalculatedEMI = false;
                       });
                     },
                     style: ElevatedButton.styleFrom(
@@ -525,7 +597,6 @@ Card(
             ),
             const SizedBox(height: 20),
 
-            // Ready Cash Calculator
             if (!isEMISelected) ...[
               const Text('Ready Cash Calculator',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -545,6 +616,7 @@ Card(
               ),
               const SizedBox(height: 20),
 
+<<<<<<< HEAD
            if (savingsRecommendation.isNotEmpty) ...[
   Card(
     child: Padding(
@@ -578,9 +650,52 @@ Card(
     ),
   ),
 ],
+=======
+              if (_hasCalculatedSavings) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Savings Plan',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 10),
+                        Text(savingsRecommendation),
+                        const SizedBox(height: 20),
+                        LinearProgressIndicator(
+                          value: progress / 100,
+                          minHeight: 10,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                        ),
+                        const SizedBox(height: 10),
+                        Text('Progress: ${progress.toStringAsFixed(2)}%',
+                            style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            _startMonthlyInvestment(monthlySavings);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: Text('Invest ₹${monthlySavings.toStringAsFixed(2)} Monthly'),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('Note: Progress will update as you make investments',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+>>>>>>> 494908c537252c2cd0d444b974321799ee6596b0
             ],
-            // EMI Details
-            if (isEMISelected && emi > 0) ...[
+            
+            if (isEMISelected && _hasCalculatedEMI) ...[
               const SizedBox(height: 20),
               const Text('EMI Details',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -626,7 +741,6 @@ Card(
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () {
-                          // Save EMI plan to goals
                           _saveEMIPlan();
                         },
                         style: ElevatedButton.styleFrom(
@@ -683,12 +797,12 @@ class EMICalculator extends StatefulWidget {
   final TextEditingController tenureController;
 
   const EMICalculator({
-    super.key,
+    Key? key,
     required this.onEMICalculated,
     required this.loanAmountController,
     required this.interestController,
     required this.tenureController,
-  });
+  }) : super(key: key);
 
   @override
   _EMICalculatorState createState() => _EMICalculatorState();
@@ -698,6 +812,7 @@ class _EMICalculatorState extends State<EMICalculator> {
   double emi = 0.0;
   double totalInterest = 0.0;
   double totalPayment = 0.0;
+  bool _emiCalculated = false;
 
   @override
   void initState() {
@@ -705,7 +820,6 @@ class _EMICalculatorState extends State<EMICalculator> {
     widget.loanAmountController.addListener(_scheduleEMICalculation);
     widget.interestController.addListener(_scheduleEMICalculation);
     widget.tenureController.addListener(_scheduleEMICalculation);
-    WidgetsBinding.instance.addPostFrameCallback((_) => calculateEMI());
   }
 
   @override
@@ -717,7 +831,13 @@ class _EMICalculatorState extends State<EMICalculator> {
   }
 
   void _scheduleEMICalculation() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => calculateEMI());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_emiCalculated) {
+        setState(() {
+          _emiCalculated = false;
+        });
+      }
+    });
   }
 
   void calculateEMI() {
@@ -738,7 +858,9 @@ class _EMICalculatorState extends State<EMICalculator> {
       totalInterest = 0;
     }
 
-    setState(() {});
+    setState(() {
+      _emiCalculated = true;
+    });
     widget.onEMICalculated(emi);
   }
 
@@ -778,10 +900,7 @@ class _EMICalculatorState extends State<EMICalculator> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {
-              calculateEMI();
-              Navigator.pop(context);
-            },
+            onPressed: calculateEMI,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
@@ -790,40 +909,41 @@ class _EMICalculatorState extends State<EMICalculator> {
             child: const Text('Calculate EMI'),
           ),
           const SizedBox(height: 20),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Monthly EMI:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('₹${emi.toStringAsFixed(2)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Total Interest:'),
-                      Text('₹${totalInterest.toStringAsFixed(2)}'),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Total Payment:'),
-                      Text('₹${totalPayment.toStringAsFixed(2)}'),
-                    ],
-                  ),
-                ],
+          if (_emiCalculated)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Monthly EMI:',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('₹${emi.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total Interest:'),
+                        Text('₹${totalInterest.toStringAsFixed(2)}'),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total Payment:'),
+                        Text('₹${totalPayment.toStringAsFixed(2)}'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
