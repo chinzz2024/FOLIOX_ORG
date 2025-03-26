@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+<<<<<<< HEAD
+=======
+import 'package:foliox/login_page.dart';
+import 'package:foliox/stock_sell.dart';
+>>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
 import 'planner_page.dart';
 import 'stock_news.dart';
 import 'stock_list.dart';
@@ -36,14 +41,16 @@ class _HomepageState extends State<Homepage> {
 
   @override
   Widget build(BuildContext context) {
+    final double buttonWidth = MediaQuery.of(context).size.width * 0.8;
+    
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF1A2980),  // Deep navy blue
-            Color(0xFF26D0CE),  // Teal accent
+            Color(0xFF1A2980),
+            Color(0xFF26D0CE),
           ],
         ),
       ),
@@ -61,10 +68,8 @@ class _HomepageState extends State<Homepage> {
                 fontSize: 20,
               ),
             ),
-            
-            backgroundColor: Color(0xFF0F2027), // Dark blue AppBar
+            backgroundColor: Color(0xFF0F2027),
             centerTitle: true,
-            
           ),
           body: Column(
             children: [
@@ -133,6 +138,7 @@ class _HomepageState extends State<Homepage> {
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 _buildQuickActionButton(
+                                  width: buttonWidth / 2 - 20,
                                   icon: Icons.newspaper,
                                   label: 'Stock News',
                                   onTap: () {
@@ -144,6 +150,7 @@ class _HomepageState extends State<Homepage> {
                                   },
                                 ),
                                 _buildQuickActionButton(
+                                  width: buttonWidth / 2 - 20,
                                   icon: Icons.bar_chart,
                                   label: 'Stocks',
                                   onTap: () {
@@ -156,6 +163,19 @@ class _HomepageState extends State<Homepage> {
                                 ),
                               ],
                             ),
+                            SizedBox(height: 20),
+                            Center(
+                              child: _buildReviewButton(
+                                width: buttonWidth,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => StockSell()),
+                                  );
+                                },
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -165,7 +185,6 @@ class _HomepageState extends State<Homepage> {
               ),
             ],
           ),
-
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -216,14 +235,16 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Widget _buildQuickActionButton(
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
+  Widget _buildQuickActionButton({
+    required double width,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 150,
+        width: width,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -252,11 +273,64 @@ class _HomepageState extends State<Homepage> {
               label, 
               style: TextStyle(
                 fontSize: 16, 
-                color: Colors.white70,
+                color: Colors.white,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
               )
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewButton({
+    required double width,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 30, 125, 165),
+              Color.fromARGB(255, 17, 130, 168),
+              Color(0xFF2C5364),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black38,
+              blurRadius: 10,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.trending_up_sharp, color: Colors.white, size: 40),
+                SizedBox(width: 15),
+                Text(
+                  'Review of your portfolio',
+                  style: TextStyle(
+                    fontSize: 16, 
+                    color:  Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+              ],
+            ),
+            Icon(Icons.arrow_forward, color: Colors.white),
           ],
         ),
       ),

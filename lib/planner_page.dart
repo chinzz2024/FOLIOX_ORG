@@ -69,7 +69,7 @@ class _PlannerPageState extends State<PlannerPage> {
               ),
             ),
            
-            backgroundColor: const Color(0xFF0C0625),
+            backgroundColor: Color(0xFF0F2027),
             elevation: 0,
             centerTitle: true,
           ),

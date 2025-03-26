@@ -7,12 +7,12 @@ import 'dart:convert';
 class StockDataPage extends StatefulWidget {
   final String symbolToken;
   final String stockName;
-  final String stockDocumentId; // Stock document ID
+  final String stockDocumentId;
 
   const StockDataPage({
     required this.symbolToken,
     required this.stockName,
-    required this.stockDocumentId, // Include the stock document ID
+    required this.stockDocumentId,
     super.key,
   });
 
@@ -27,7 +27,7 @@ class _StockDataPageState extends State<StockDataPage> {
 
   Future<void> fetchHistoricalData() async {
     final String fromDate = '2000-01-01 00:00';
-    final String toDate = '2025-01-21 13:30';
+    final String toDate = '2025-03-26 12:00';
 
     final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
     final response = await http.post(
@@ -78,47 +78,64 @@ class _StockDataPageState extends State<StockDataPage> {
   }
 
   void _addInvestmentToPortfolio(String shares, double amount) async {
-    final User? user = FirebaseAuth.instance.currentUser; // Get current user
-    if (user == null) {
-      // Handle the case when the user is not logged in
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to invest')),
-      );
-      return;
-    }
-
-    // Add investment data to Firestore under user's portfolios subcollection
-    try {
-      final portfolioData = {
-        'stockId': widget.stockDocumentId, // Stock document ID
-        'stockName': widget.stockName,
-        'shares': int.parse(shares),
-        'purchasePrice': _lastPrice,
-        'totalInvestment': amount,
-        'investmentDate': Timestamp.now(),
-      };
-
-      await FirebaseFirestore.instance
-          .collection('users') // Users collection
-          .doc(user.uid) // Current user's document
-          .collection('portfolios') // Subcollection for portfolios
-          .add(portfolioData);
-
-      // Show confirmation message after successful investment
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              '₹$amount invested in ${widget.stockName} for $shares shares!'),
-        ),
-      );
-    } catch (e) {
-      // Show error message if something goes wrong
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
+  final User? user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please login to invest')),
+    );
+    return;
   }
 
+  try {
+    // Reference to the user's investments document
+    final userInvestmentsRef = FirebaseFirestore.instance
+        .collection('user_investments')
+        .doc(user.uid);
+
+    // Get the current investments
+    final docSnapshot = await userInvestmentsRef.get();
+    
+    // Prepare the new investment data
+    final newInvestmentData = {
+      'shares': int.parse(shares),
+      'purchasePrice': _lastPrice,
+      'totalInvestment': amount,
+      'investmentDate': Timestamp.now(),
+    };
+
+    // If the document exists, update or add to the existing investments
+    if (docSnapshot.exists) {
+      // Get the current investments map
+      Map<String, dynamic> currentInvestments = 
+          Map<String, dynamic>.from(docSnapshot.data() ?? {});
+
+      // Update or add the investment for this specific stock
+      currentInvestments[widget.stockName] = newInvestmentData;
+
+      // Update the entire document
+      await userInvestmentsRef.set(currentInvestments, SetOptions(merge: true));
+    } else {
+      // Create a new document with the first investment
+      await userInvestmentsRef.set({
+        widget.stockName: newInvestmentData
+      });
+    }
+
+    // Show confirmation message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '₹$amount invested in ${widget.stockName} for $shares shares!',
+        ),
+      ),
+    );
+  } catch (e) {
+    // Show error message if something goes wrong
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  }
+}
   void _showInvestmentDialog() {
     final TextEditingController sharesController = TextEditingController();
 
@@ -126,7 +143,13 @@ class _StockDataPageState extends State<StockDataPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Invest in Stock',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Invest in Stock',
+            style: TextStyle(
+              color: Color.fromARGB(255, 0, 0, 0),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: TextField(
             controller: sharesController,
             keyboardType: TextInputType.number,
@@ -149,7 +172,9 @@ class _StockDataPageState extends State<StockDataPage> {
                   final totalAmount = double.parse(enteredShares) * _lastPrice!;
                   Navigator.pop(context);
                   _addInvestmentToPortfolio(
-                      enteredShares, totalAmount); // Add data to portfolio
+                    enteredShares,
+                    totalAmount,
+                  );
                 }
               },
               child: const Text('Invest'),
@@ -231,7 +256,6 @@ class _StockDataPageState extends State<StockDataPage> {
   }
 }
 
-// Data model and painter remain unchanged.
 class CandlestickData {
   final DateTime date;
   final double open;
@@ -250,7 +274,6 @@ class CandlestickData {
   );
 }
 
-// Custom painter for candlestick chart
 class CandlestickChartPainter extends CustomPainter {
   final List<CandlestickData> data;
 

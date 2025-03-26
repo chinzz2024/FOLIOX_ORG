@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+<<<<<<< HEAD
 import 'dart:math'; // For pow() function
+=======
+import 'calculation_page.dart';
+import 'dart:math';
+>>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
 import 'dreamcar.dart';
 import 'retire.dart';
 import 'dream.dart';
 import 'emergency.dart';
 import 'marriage.dart';
-import 'dart:async'; // Add this at the top of your file
+import 'dart:async';
 
 class SummaryPage extends StatefulWidget {
   const SummaryPage({super.key, this.shouldRefresh = false});
 
   final bool shouldRefresh;
   
-
   @override
   State<SummaryPage> createState() => _SummaryPageState();
 }
@@ -39,149 +43,135 @@ class _SummaryPageState extends State<SummaryPage> {
   String fdSuggestion = '';
 
   @override
-void initState() {
-  super.initState();
-  _fetchFinancialData(); // Keep your existing initialization
-}
-
-@override
-void didUpdateWidget(SummaryPage oldWidget) {
-  super.didUpdateWidget(oldWidget);
-  if (widget.shouldRefresh && !oldWidget.shouldRefresh) {
-    _fetchFinancialData(); // Add this new method
+  void initState() {
+    super.initState();
+    _fetchFinancialData();
   }
-}
 
-Future<void> _fetchFinancialData() async {
-  if (!mounted) return;
-  
-  setState(() {
-    isLoading = true;
-    _hasError = false;
-    _errorMessage = '';
-  });
-
-  try {
-    final User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      _handleError('User not authenticated');
-      return;
+  @override
+  void didUpdateWidget(SummaryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.shouldRefresh && !oldWidget.shouldRefresh) {
+      _fetchFinancialData();
     }
-
-    final DocumentSnapshot snapshot = await FirebaseFirestore.instance
-        .collection('financialPlanner')
-        .doc(user.uid)
-        .get()
-        .timeout(const Duration(seconds: 10));
-
-    if (!snapshot.exists) {
-      _handleError('No financial data found');
-      return;
-    }
-
-    final data = snapshot.data() as Map<String, dynamic>?;
-    if (data == null) {
-      _handleError('Invalid data format');
-      return;
-    }
-
-    // Parse and update state
-    if (mounted) {
-      setState(() {
-        income = _parseDouble(data['totalIncome']);
-        essentialExpenses = _parseDouble(data['totalEssentialExpenses']);
-        optionalExpenses = _parseDouble(data['totalOptionalExpenses']);
-        savings = _parseDouble(data['savings']);
-        
-        // Parse expenses maps
-        essentialExpensesMap = data['essentialExpenses'] is Map 
-            ? Map<String, double>.from(data['essentialExpenses'])
-            : {};
-        optionalExpensesMap = data['optionalExpenses'] is Map
-            ? Map<String, double>.from(data['optionalExpenses'])
-            : {};
-
-        // Parse goals
-        goalsSelected = _parseGoals(data['goalsSelected']);
-
-        // Handle marriage data if needed
-        if (goalsSelected.contains('Marriage')) {
-          marriageBudget = _parseDouble(data['estimatedBudget']);
-          marriageYears = _parseInt(data['targetYear']);
-          _calculateMarriageDetails();
-        }
-
-        isLoading = false;
-      });
-    }
-  } on FirebaseException catch (e) {
-    _handleError('Database error: ${e.message}');
-  } on TimeoutException {
-    _handleError('Request timed out. Please try again');
-  } catch (e) {
-    _handleError('An unexpected error occurred');
   }
-}
 
-// Helper methods:
+  Future<void> _fetchFinancialData() async {
+    if (!mounted) return;
+    
+    setState(() {
+      isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+    });
 
-List<String> _parseGoals(dynamic goalsData) {
-  if (goalsData is! List) return [];
-  return goalsData.map((goal) {
-    if (goal is Map) return goal['goal']?.toString() ?? '';
-    return goal.toString();
-  }).toList();
-}
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _handleError('User not authenticated');
+        return;
+      }
 
-double _parseDouble(dynamic value) {
-  if (value is double) return value;
-  if (value is int) return value.toDouble();
-  if (value is String) return double.tryParse(value) ?? 0.0;
-  return 0.0;
-}
+      final DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('financialPlanner')
+          .doc(user.uid)
+          .get()
+          .timeout(const Duration(seconds: 10));
 
-int _parseInt(dynamic value) {
-  if (value is int) return value;
-  if (value is String) return int.tryParse(value) ?? 0;
-  return 0;
-}
+      if (!snapshot.exists) {
+        _handleError('No financial data found');
+        return;
+      }
 
-void _handleError(String message) {
-  if (!mounted) return;
-  
-  setState(() {
-    isLoading = false;
-    _hasError = true;
-    _errorMessage = message;
-  });
-  
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 3),
-    ),
-  );
-}
+      final data = snapshot.data() as Map<String, dynamic>?;
+      if (data == null) {
+        _handleError('Invalid data format');
+        return;
+      }
 
+      if (mounted) {
+        setState(() {
+          income = _parseDouble(data['totalIncome']);
+          essentialExpenses = _parseDouble(data['totalEssentialExpenses']);
+          optionalExpenses = _parseDouble(data['totalOptionalExpenses']);
+          savings = _parseDouble(data['savings']);
+          
+          essentialExpensesMap = data['essentialExpenses'] is Map 
+              ? Map<String, double>.from(data['essentialExpenses'])
+              : {};
+          optionalExpensesMap = data['optionalExpenses'] is Map
+              ? Map<String, double>.from(data['optionalExpenses'])
+              : {};
 
+          goalsSelected = _parseGoals(data['goalsSelected']);
 
+          if (goalsSelected.contains('Marriage')) {
+            marriageBudget = _parseDouble(data['estimatedBudget']);
+            marriageYears = _parseInt(data['targetYear']);
+            _calculateMarriageDetails();
+          }
 
+          isLoading = false;
+        });
+      }
+    } on FirebaseException catch (e) {
+      _handleError('Database error: ${e.message}');
+    } on TimeoutException {
+      _handleError('Request timed out. Please try again');
+    } catch (e) {
+      _handleError('An unexpected error occurred');
+    }
+  }
 
-  // Calculate marriage-specific details
+  List<String> _parseGoals(dynamic goalsData) {
+    if (goalsData is! List) return [];
+    return goalsData.map((goal) {
+      if (goal is Map) return goal['goal']?.toString() ?? '';
+      return goal.toString();
+    }).toList();
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  void _handleError(String message) {
+    if (!mounted) return;
+    
+    setState(() {
+      isLoading = false;
+      _hasError = true;
+      _errorMessage = message;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   void _calculateMarriageDetails() {
     if (marriageBudget > 0 && marriageYears > 0) {
-      // Inflation Calculation (7% inflation rate)
       double inflatedAmount = marriageBudget * pow(1.07, marriageYears);
       inflationResult =
           "You would need ₹${inflatedAmount.toStringAsFixed(2)} for your marriage in $marriageYears years.";
 
-      // SIP Calculation (Assuming 12% annual return, monthly investment of 10k)
       double sipFutureValue =
           10000 * ((pow(1 + 0.01, marriageYears * 12) - 1) / 0.01) * (1 + 0.01);
       sipSuggestion =
           "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹${sipFutureValue.toStringAsFixed(2)} in $marriageYears years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
 
-      // FD Calculation (Assuming 7% annual return)
       double fdFutureValue = savings * pow(1.07, marriageYears);
       fdSuggestion =
           "Placing your current savings of ₹${savings.toStringAsFixed(2)} in an FD at 7% annual return would grow to ₹${fdFutureValue.toStringAsFixed(2)} in $marriageYears years.";
@@ -191,23 +181,86 @@ void _handleError(String message) {
       fdSuggestion = '';
     }
   }
-@override
-Widget build(BuildContext context) {
-  if (isLoading) {
+
+  @override
+  Widget build(BuildContext context) {
+    // Calculate percentages
+    double needsPercentage = (essentialExpenses / income) * 100;
+    double wantsPercentage = (optionalExpenses / income) * 100;
+    double savingsPercentage = (savings / income) * 100;
+
+    // Check if the user is following the 50-30-20 rule
+    bool isFollowingRule = (needsPercentage <= 50) &&
+        (wantsPercentage <= 30) &&
+        (savingsPercentage >= 20);
+
+    if (isLoading) {
+      return _buildLoadingScreen();
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Financial Summary',style: TextStyle(color: Colors.white),),
+        leading: IconButton(onPressed: ()=> Navigator.pop(context),
+       icon: Icon(Icons.arrow_back, color:Colors.white)),
+        backgroundColor: Color(0xFF0F2027),
+        elevation: 10,
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(0),
+        ),
+      ),
+      ),
+        body: RefreshIndicator(
+        onRefresh: _fetchFinancialData,
+        color: Colors.blue,
+        backgroundColor: Colors.white,
+        displacement: 40.0,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatusCard(isFollowingRule),
+              const SizedBox(height: 20),
+              _buildFinancialOverviewCard(),
+              const SizedBox(height: 20),
+              _buildRuleBreakdownCard(),
+              if (selectedGoal == 'Marriage') _buildMarriagePlanningCard(),
+              if (!isFollowingRule) _buildRecommendationsCard(),
+              if (goalsSelected.isNotEmpty) _buildGoalsCard(),
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      
+      ),
+    
+    );
+  
+  }
+
+  Widget _buildLoadingScreen() {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Financial Summary'),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        backgroundColor: const Color(0xFF0A0E2D),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A5A98)),
+            ),
             const SizedBox(height: 20),
             Text(
               'Updating your financial summary...',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.grey[700],
+              ),
             ),
           ],
         ),
@@ -215,135 +268,47 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Calculate percentages
-  double needsPercentage = (essentialExpenses / income) * 100;
-  double wantsPercentage = (optionalExpenses / income) * 100;
-  double savingsPercentage = (savings / income) * 100;
-
-  // Check if the user is following the 50-30-20 rule
-  bool isFollowingRule = (needsPercentage <= 50) &&
-      (wantsPercentage <= 30) &&
-      (savingsPercentage >= 20);
-
-  return Scaffold(
-    appBar: AppBar(
-      title: const Text('Financial Summary'),
-      backgroundColor: const Color.fromARGB(255, 12, 6, 37),
-    ),
-    body: RefreshIndicator(
-      onRefresh: _fetchFinancialData,
-      color: Colors.blue,
-      backgroundColor: Colors.white,
-      displacement: 40.0,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+  Widget _buildStatusCard(bool isFollowingRule) {
+  return Center( // Centering the card
+    child: Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      color: isFollowingRule ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Ensures proper spacing
           children: [
-            // Green or Red Light with investment advice
-            Center(
-              child: Column(
-                children: [
-                  Icon(
-                    isFollowingRule ? Icons.check_circle : Icons.error,
-                    color: isFollowingRule ? Colors.green : Colors.red,
-                    size: 100,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    isFollowingRule
-                        ? 'Great! You are following the 50-30-20 rule!'
-                        : 'You are NOT following the 50-30-20 rule.',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isFollowingRule ? Colors.green : Colors.red,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Show investment suggestions only if following the rule
-                  if (isFollowingRule) ...[
-                    _buildInvestmentSuggestions(),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Income
-            _buildFinancialRow('Income', income),
-            const SizedBox(height: 10),
-
-            // Essential Expenses
-            _buildFinancialRow('Essential Expenses (Needs)', essentialExpenses,
-                percentage: needsPercentage),
-            const SizedBox(height: 10),
-
-            // Optional Expenses
-            _buildFinancialRow('Optional Expenses (Wants)', optionalExpenses,
-                percentage: wantsPercentage),
-            const SizedBox(height: 10),
-
-            // Savings
-            _buildFinancialRow('Savings', savings,
-                percentage: savingsPercentage),
-            const SizedBox(height: 20),
-
-            // Rule Breakdown
-            const Text(
-              '50-30-20 Rule Breakdown:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Icon(
+              isFollowingRule ? Icons.check_circle : Icons.warning,
+              color: isFollowingRule ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+              size: 50,
             ),
             const SizedBox(height: 10),
-            _buildRuleRow('Needs (50%)', needsPercentage, 50),
-            _buildRuleRow('Wants (30%)', wantsPercentage, 30),
-            _buildRuleRow('Savings (20%)', savingsPercentage, 20),
-
-            // Marriage-specific details
-            if (selectedGoal == 'Marriage') ...[
-              const SizedBox(height: 20),
-              const Text(
-                'Marriage Planning:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              isFollowingRule 
+                  ? 'Great! You are following the 50-30-20 rule!' 
+                  : 'You are NOT following the 50-30-20 rule',
+              textAlign: TextAlign.center, // Center align text
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isFollowingRule ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
               ),
+            ),
+            if (isFollowingRule) ...[
               const SizedBox(height: 10),
-              if (inflationResult.isNotEmpty)
-                Text(inflationResult,
-                    style: const TextStyle(fontSize: 16, color: Colors.red)),
-              if (sipSuggestion.isNotEmpty)
-                Text(sipSuggestion,
-                    style: const TextStyle(fontSize: 16, color: Colors.green)),
-              if (fdSuggestion.isNotEmpty)
-                Text(fdSuggestion,
-                    style: const TextStyle(fontSize: 16, color: Colors.blue)),
-              const SizedBox(height: 20),
-            ],
-
-            // Recommendations
-            if (!isFollowingRule) ...[
-              const SizedBox(height: 20),
               const Text(
-                'Recommendations:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              ..._buildRecommendations(needsPercentage, wantsPercentage),
-            ],
-
-            if (goalsSelected.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const Text(
-                'Your Selected Goals:',
+                '🎉 Keep up the good financial habits!',
+                textAlign: TextAlign.center, // Ensuring text is centered
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                  fontSize: 16,
+                  color: Color(0xFF2E7D32),
                 ),
               ),
+<<<<<<< HEAD
               const SizedBox(height: 10),
               Column(
                 children: goalsSelected.map((goal) {
@@ -406,9 +371,9 @@ Widget build(BuildContext context) {
                   );
                 }).toList(),
               ),
+=======
+>>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
             ],
-            
-            const SizedBox(height: 20), // Add some space at the bottom
           ],
         ),
       ),
@@ -416,76 +381,90 @@ Widget build(BuildContext context) {
   );
 }
 
-  // Helper method to build a financial row
-  Widget _buildFinancialRow(String label, double amount, {double? percentage}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16),
+
+  Widget _buildFinancialOverviewCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Financial Overview',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A0E2D)),
+            ),
+            const Divider(thickness: 1),
+            const SizedBox(height: 10),
+            _buildFinancialRowWithIcon(
+              Icons.attach_money, 
+              'Income', 
+              income,
+              Colors.green
+            ),
+            _buildFinancialRowWithIcon(
+              Icons.home, 
+              'Essential Expenses', 
+              essentialExpenses,
+              Colors.blue
+            ),
+            _buildFinancialRowWithIcon(
+              Icons.shopping_cart, 
+              'Optional Expenses', 
+              optionalExpenses,
+              Colors.orange
+            ),
+            _buildFinancialRowWithIcon(
+              Icons.savings, 
+              'Savings', 
+              savings,
+              Colors.purple
+            ),
+          ],
         ),
-        Text(
-          percentage != null
-              ? '₹${amount.toStringAsFixed(2)} (${percentage.toStringAsFixed(2)}%)'
-              : '₹${amount.toStringAsFixed(2)}',
-          style: const TextStyle(fontSize: 16),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildInvestmentSuggestions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        const Text(
-          'Investment Suggestions:',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '📈 SIP Investment: Invest ₹10,000/month in SIPs at 12% annual return. Recommended Funds:\n'
-          '   ✅ SBI Bluechip Fund\n'
-          '   ✅ ICICI Prudential Growth Fund\n',
-          style: const TextStyle(fontSize: 16, color: Colors.green),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '🏦 Fixed Deposit: Deposit your savings in an FD at 7% interest for stable returns.',
-          style: const TextStyle(fontSize: 16, color: Colors.blue),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '💡 Other Investments:\n'
-          '   📊 Consider index funds (Nifty 50, S&P 500 ETFs)\n'
-          '   🏡 Real estate investments for long-term growth\n'
-          '   📜 Government bonds for risk-free returns',
-          style: const TextStyle(fontSize: 16, color: Colors.orange),
-        ),
-      ],
-    );
-  }
-
-  // Helper method to build a rule comparison row
-  Widget _buildRuleRow(
-      String label, double userPercentage, double rulePercentage) {
+  Widget _buildFinancialRowWithIcon(IconData icon, String label, double amount, Color color) {
+    double percentage = (amount / income) * 100;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 16),
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
           Text(
-            '${userPercentage.toStringAsFixed(2)}%',
-            style: TextStyle(
+            '₹${amount.toStringAsFixed(2)}',
+            style: const TextStyle(
               fontSize: 16,
-              color:
-                  userPercentage <= rulePercentage ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '${percentage.toStringAsFixed(1)}%',
+              style: TextStyle(
+                fontSize: 14,
+                color: color,
+                fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -493,77 +472,371 @@ Widget build(BuildContext context) {
     );
   }
 
-  // Helper method to build recommendations
-List<Widget> _buildRecommendations(
-    double needsPercentage, double wantsPercentage) {
-  List<Widget> recommendations = [];
+  Widget _buildRuleBreakdownCard() {
+    double needsPercentage = (essentialExpenses / income) * 100;
+    double wantsPercentage = (optionalExpenses / income) * 100;
+    double savingsPercentage = (savings / income) * 100;
 
-  // Recommendations for essential expenses
-  if (needsPercentage > 50) {
-    recommendations.addAll([
-      const Text(
-        'Your essential expenses are too high. Consider:',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
       ),
-      ...essentialExpensesMap.entries.map((entry) {
-        return Text(
-          '- Reduce ${entry.key}: ₹${entry.value.toStringAsFixed(2)}',
-          style: const TextStyle(fontSize: 16),
-        );
-      }),
-      const SizedBox(height: 10),
-
-      // New section for reallocating optional expenses
-      const Text(
-        'Reallocation Strategy:',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '50-30-20 Rule Breakdown',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A0E2D)),
+            ),
+            const Divider(thickness: 1),
+            const SizedBox(height: 10),
+            _buildRuleProgressBar('Needs (50%)', needsPercentage, 50, Colors.blue),
+            _buildRuleProgressBar('Wants (30%)', wantsPercentage, 30, Colors.orange),
+            _buildRuleProgressBar('Savings (20%)', savingsPercentage, 20, Colors.green),
+          ],
+        ),
       ),
-      Text(
-        '💡 You can reduce your optional expenses and redirect funds to essential expenses:',
-        style: const TextStyle(fontSize: 16),
-      ),
-      Text(
-        '- Current Optional Expenses: ₹${optionalExpenses.toStringAsFixed(2)} (${wantsPercentage.toStringAsFixed(2)}%)',
-        style: const TextStyle(fontSize: 16),
-      ),
-      Text(
-        '- Recommended Reallocation: Transfer 5-10% of optional expenses to essential expenses',
-        style: const TextStyle(fontSize: 16, color: Colors.green),
-      ),
-      const SizedBox(height: 10),
-      
-      // Suggested areas to cut from optional expenses
-      const Text(
-        'Potential Areas to Reduce in Optional Expenses:',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-      ...optionalExpensesMap.entries.map((entry) {
-        return Text(
-          '- Consider reducing ${entry.key}: ₹${entry.value.toStringAsFixed(2)}',
-          style: const TextStyle(fontSize: 16),
-        );
-      }),
-      const SizedBox(height: 10),
-    ]);
+    );
   }
 
-  // Recommendations for optional expenses
-  if (wantsPercentage > 30) {
-    recommendations.addAll([
-      const Text(
-        'Your optional expenses are too high. Consider:',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  Widget _buildRuleProgressBar(String label, double userPercentage, double rulePercentage, Color color) {
+    bool isOver = userPercentage > rulePercentage;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(fontSize: 16),
+              ),
+              Text(
+                '${userPercentage.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isOver ? Colors.red : Colors.green),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Stack(
+            children: [
+              Container(
+                height: 10,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: userPercentage / 100,
+                child: Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: '${rulePercentage}%'.length * 5.0,
+                child: Container(
+                  height: 10,
+                  width: 2,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          if (isOver)
+            Text(
+              '${(userPercentage - rulePercentage).toStringAsFixed(1)}% over recommended',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.red),
+            ),
+        ],
       ),
-      ...optionalExpensesMap.entries.map((entry) {
-        return Text(
-          '- Reduce ${entry.key}: ₹${entry.value.toStringAsFixed(2)}',
-          style: const TextStyle(fontSize: 16),
-        );
-      }),
-      const SizedBox(height: 10),
-    ]);
+    );
   }
 
-  return recommendations;
-}
+  Widget _buildMarriagePlanningCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.only(top: 20),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.favorite, color: Colors.red),
+                const SizedBox(width: 10),
+                const Text(
+                  'Marriage Planning',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0A0E2D)),
+                ),
+              ],
+            ),
+            const Divider(thickness: 1),
+            const SizedBox(height: 10),
+            if (inflationResult.isNotEmpty)
+              _buildInfoTile(
+                Icons.trending_up,
+                'Future Cost',
+                inflationResult,
+                Colors.red),
+            if (sipSuggestion.isNotEmpty)
+              _buildInfoTile(
+                Icons.bar_chart,
+                'SIP Investment',
+                sipSuggestion,
+                Colors.green),
+            if (fdSuggestion.isNotEmpty)
+              _buildInfoTile(
+                Icons.account_balance,
+                'Fixed Deposit',
+                fdSuggestion,
+                Colors.blue),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsCard() {
+    double needsPercentage = (essentialExpenses / income) * 100;
+    double wantsPercentage = (optionalExpenses / income) * 100;
+
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.only(top: 20),
+      color: const Color(0xFFFFF8E1),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.lightbulb_outline, color: Colors.orange),
+                const SizedBox(width: 10),
+                const Text(
+                  'Recommendations',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0A0E2D)),
+                ),
+              ],
+            ),
+            const Divider(thickness: 1),
+            const SizedBox(height: 10),
+            if (needsPercentage > 50) ...[
+              const Text(
+                'Essential Expenses Reduction:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red),
+              ),
+              ...essentialExpensesMap.entries.map((entry) => 
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.chevron_right, size: 16),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Reduce ${entry.key} by 10-15% (Current: ₹${entry.value.toStringAsFixed(2)})',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (wantsPercentage > 30) ...[
+              const Text(
+                'Optional Expenses Reduction:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange),
+              ),
+              ...optionalExpensesMap.entries.map((entry) => 
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.chevron_right, size: 16),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Limit ${entry.key} spending (Current: ₹${entry.value.toStringAsFixed(2)})',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            const Text(
+              '💡 Tip: Try to save at least 20% of your income each month',
+              style: TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: Colors.green),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoalsCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      margin: const EdgeInsets.only(top: 20),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Your Financial Goals',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A0E2D)),
+            ),
+            const Divider(thickness: 1),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: goalsSelected.map((goal) {
+                return ActionChip(
+                  avatar: Icon(_getGoalIcon(goal)),
+                  label: Text(goal),
+                  backgroundColor: _getGoalColor(goal).withOpacity(0.2),
+                  labelStyle: TextStyle(
+                    color: _getGoalColor(goal),
+                    fontWeight: FontWeight.bold,
+                  ),
+                  onPressed: () {
+                    _navigateToGoalPage(goal);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Tap on any goal to plan for it',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String title, String content, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 34.0),
+            child: Text(
+              content,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getGoalIcon(String goal) {
+    switch (goal) {
+      case 'Marriage': return Icons.favorite;
+      case 'Dream Car': return Icons.directions_car;
+      case 'Retirement': return Icons.emoji_people;
+      case 'Dream Home': return Icons.home;
+      case 'Emergency Fund': return Icons.emergency;
+      default: return Icons.flag;
+    }
+  }
+
+  Color _getGoalColor(String goal) {
+    switch (goal) {
+      case 'Marriage': return Colors.red;
+      case 'Dream Car': return Colors.blue;
+      case 'Retirement': return Colors.purple;
+      case 'Dream Home': return Colors.orange;
+      case 'Emergency Fund': return Colors.green;
+      default: return Colors.grey;
+    }
+  }
+
+  void _navigateToGoalPage(String goal) async {
+    Widget page;
+    switch (goal) {
+      case 'Marriage': page = Marriage(); break;
+      case 'Dream Car': page = DreamcarPage(); break;
+      case 'Retirement': page = RetireEarly(); break;
+      case 'Dream Home': page = DreamHomeScreen(); break;
+      case 'Emergency Fund': page = EmergencyFund(); break;
+      default: return;
+    }
+    
+    await Navigator.push(
+      context, 
+      MaterialPageRoute(builder: (context) => page),
+    );
+    _fetchFinancialData();
+  }
 }

@@ -14,9 +14,7 @@ class _DreamcarPageState extends State<DreamcarPage> {
   bool isEMISelected = false;
   double emi = 0.0;
   double monthlySavings = 0.0;
-  double progress = 0.0;
   String savingsRecommendation = '';
-  bool isTargetReached = false;
  double _totalInvested = 0.0;
 List<Map<String, dynamic>> _investmentHistory = [];
 bool _isLoading = true;
@@ -93,7 +91,52 @@ String _errorMessage = '';
   }
 
 
-  Future<void> _loadInvestments() async {
+Future<void> _loadInvestments() async {
+  try {
+    DocumentSnapshot snapshot = await FirebaseFirestore.instance
+        .collection('investments')
+        .doc(_currentUser!.uid)
+        .get();
+        
+    if (snapshot.exists) {
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      
+      // Access nested dreamCar data
+      if (data.containsKey('dreamCar')) {
+        Map<String, dynamic> dreamCarData = data['dreamCar'];
+        setState(() {
+          _totalInvested = dreamCarData['totalInvested']?.toDouble() ?? 0.0;
+          // Initialize controllers with existing values if available
+          targetAmountController.text = (dreamCarData['targetAmount']?.toString() ?? '500000');
+          // Removed progress calculation
+        });
+      }
+      
+      // Load investment history (unchanged)
+      QuerySnapshot history = await FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid)
+          .collection('history')
+          .orderBy('date', descending: true)
+          .get();
+          
+      setState(() {
+        _investmentHistory = history.docs.map((doc) {
+          return {
+            'amount': doc['amount'],
+            'date': (doc['date'] as Timestamp).toDate(),
+          };
+        }).toList();
+      });
+    }
+  } catch (e) {
+    print('Error loading investments: $e');
+  }
+}
+
+ Future<double> _getDreamCarAllocation() async {
+    if (_currentUser == null) return 0.0;
+    
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('investments')
@@ -102,60 +145,52 @@ String _errorMessage = '';
           
       if (snapshot.exists) {
         Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        
-        // Access nested dreamCar data
         if (data.containsKey('dreamCar')) {
-          Map<String, dynamic> dreamCarData = data['dreamCar'];
-          setState(() {
-            _totalInvested = dreamCarData['totalInvested']?.toDouble() ?? 0.0;
-            // Initialize controllers with existing values if available
-            targetAmountController.text = (dreamCarData['targetAmount']?.toString() ?? '500000');
-            progress = (_totalInvested / (double.tryParse(targetAmountController.text) ?? 1)) * 100;
-            isTargetReached = progress >= 100;
-          });
+          return data['dreamCar']['monthlyTarget']?.toDouble() ?? 0.0;
         }
-        
-        // Load investment history (unchanged)
-        QuerySnapshot history = await FirebaseFirestore.instance
-            .collection('investments')
-            .doc(_currentUser!.uid)
-            .collection('history')
-            .orderBy('date', descending: true)
-            .get();
-            
-        setState(() {
-          _investmentHistory = history.docs.map((doc) {
-            return {
-              'amount': doc['amount'],
-              'date': (doc['date'] as Timestamp).toDate(),
-            };
-          }).toList();
-        });
       }
     } catch (e) {
-      print('Error loading investments: $e');
+      print('Error getting dream car allocation: $e');
     }
+    return 0.0;
   }
 
- 
-  Future<void> _startMonthlyInvestment(double amount) async {
+Future<void> _startMonthlyInvestment(double amount) async {
     if (_currentUser == null) return;
-
-    if (amount > totalSavings) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Insufficient savings! You only have ₹${totalSavings.toStringAsFixed(2)}')),
-      );
-      return;
-    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // 1. First get current values from database
+      DocumentSnapshot financialSnapshot = await FirebaseFirestore.instance
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid)
+          .get();
+      
+      DocumentSnapshot investmentSnapshot = await FirebaseFirestore.instance
+          .collection('investments')
+          .doc(_currentUser!.uid)
+          .get();
+
+      double currentSavings = (financialSnapshot.data() as Map<String, dynamic>)['savings']?.toDouble() ?? 0;
+      double oldMonthlyTarget = 0;
+      
+      if (investmentSnapshot.exists) {
+        Map<String, dynamic> investmentData = investmentSnapshot.data() as Map<String, dynamic>;
+        if (investmentData.containsKey('dreamCar')) {
+          oldMonthlyTarget = investmentData['dreamCar']['monthlyTarget']?.toDouble() ?? 0;
+        }
+      }
+
+      // 2. Calculate new savings amount
+      double newSavings = (currentSavings + oldMonthlyTarget) - amount;
+
+      // 3. Update both collections in a batch write
       WriteBatch batch = FirebaseFirestore.instance.batch();
       
-      // 1. Update investments collection with NESTED structure
+      // Update investments collection
       DocumentReference investmentDoc = FirebaseFirestore.instance
           .collection('investments')
           .doc(_currentUser!.uid);
@@ -164,39 +199,27 @@ String _errorMessage = '';
         'dreamCar': {
           'goal': 'DreamCar',
           'totalInvested': FieldValue.increment(amount),
-          'monthlyTarget': monthlySavings,
+          'monthlyTarget': amount, // Store the new allocation amount
           'targetAmount': double.tryParse(targetAmountController.text),
           'lastUpdated': DateTime.now(),
         }
       }, SetOptions(merge: true));
       
-      // 2. Add to investment history (unchanged)
-      DocumentReference historyDoc = investmentDoc
-          .collection('history')
-          .doc();
-      
-      batch.set(historyDoc, {
-        'amount': amount,
-        'date': DateTime.now(),
-        'type': 'car_investment',
-      });
-      
-      // 3. Deduct from main savings (unchanged)
+      // Update financial planner with new savings
       DocumentReference financialDoc = FirebaseFirestore.instance
           .collection('financialPlanner')
           .doc(_currentUser!.uid);
       
       batch.update(financialDoc, {
-        'savings': FieldValue.increment(-amount),
+        'savings': newSavings,
       });
       
       await batch.commit();
       
+      // 4. Update local state
       setState(() {
         _totalInvested += amount;
-        totalSavings -= amount;
-        progress = (_totalInvested / (double.tryParse(targetAmountController.text) ?? 1) * 100);
-        isTargetReached = progress >= 100;
+        totalSavings = newSavings;
         _isLoading = false;
         
         _investmentHistory.insert(0, {
@@ -206,7 +229,7 @@ String _errorMessage = '';
       });
       
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('₹${amount.toStringAsFixed(2)} invested (Deducted from savings)')),
+        SnackBar(content: Text('₹${amount.toStringAsFixed(2)} allocated to Dream Car')),
       );
       
     } catch (e) {
@@ -214,10 +237,12 @@ String _errorMessage = '';
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Investment failed: ${e.toString()}')),
+        SnackBar(content: Text('Allocation failed: ${e.toString()}')),
       );
     }
   }
+
+
   void _scheduleSavingsCalculation() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       calculateMonthlySavings();
@@ -230,6 +255,7 @@ String _errorMessage = '';
     double futureValue = principal * (pow(1 + monthlyRate, months) - 1) / monthlyRate * (1 + monthlyRate);
     return futureValue;
   }
+
 void calculateMonthlySavings() {
   double targetAmount = double.tryParse(targetAmountController.text) ?? 0;
   int years = int.tryParse(yearsController.text) ?? 0;
@@ -245,7 +271,6 @@ void calculateMonthlySavings() {
     
     setState(() {
       monthlySavings = requiredMonthlySIP;
-      progress = 0; // Starts at 0% since no investments made yet
       savingsRecommendation = '''
 Savings Plan:
 
@@ -253,14 +278,11 @@ Savings Plan:
 - Time Frame: $years years
 - Required Monthly SIP: ₹${requiredMonthlySIP.toStringAsFixed(2)} at 12% return
 ''';
-      isTargetReached = false;
     });
   } else {
     setState(() {
       monthlySavings = 0;
-      progress = 0;
       savingsRecommendation = '';
-      isTargetReached = false;
     });
   }
 }
@@ -286,6 +308,8 @@ Savings Plan:
       },
     );
   }
+
+
 
   Widget buildTextField(String label, TextEditingController controller) {
     return Container(
@@ -430,6 +454,41 @@ Savings Plan:
               ),
             ),
             const SizedBox(height: 20),
+Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Current Dream Car Allocation',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                FutureBuilder<double>(
+                  future: _getDreamCarAllocation(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    }
+                    final allocation = snapshot.data ?? 0.0;
+                    return Column(
+                      children: [
+                        Text(
+                          'Monthly Allocation: ₹${allocation.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 20),
+                       
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+   
 
             // Purchase Method Selection
             const Text('How do you want to buy your car?',
@@ -498,28 +557,19 @@ Savings Plan:
           const SizedBox(height: 10),
           Text(savingsRecommendation),
           const SizedBox(height: 20),
-          LinearProgressIndicator(
-            value: progress / 100,
-            minHeight: 10,
-            backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-          ),
-          const SizedBox(height: 10),
-          Text('Progress: ${progress.toStringAsFixed(2)}%',
-              style: const TextStyle(fontSize: 16)),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // Implement investment logic here
-              _startMonthlyInvestment(monthlySavings);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-            ),
-            child: Text('Invest ₹${monthlySavings.toStringAsFixed(2)} Monthly'),
-          ),
+
+         
+        ElevatedButton(
+  onPressed: () {
+    _startMonthlyInvestment(monthlySavings);
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green,
+    foregroundColor: Colors.white,
+    minimumSize: const Size(double.infinity, 50),
+  ),
+  child: Text('Allocate ₹${monthlySavings.toStringAsFixed(2)} Monthly'),
+),
           const SizedBox(height: 10),
           const Text('Note: Progress will update as you make investments',
               style: TextStyle(fontSize: 12, color: Colors.grey)),
