@@ -18,7 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? email;
   String? panNumber;
   String? phoneNumber;
-  String? portfolioValue;
+  String? savings; // Changed from portfolioValue to savings
   bool isLoading = true;
 
   @override
@@ -31,8 +31,15 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
+        // Get user document
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
+            .doc(user.uid)
+            .get();
+
+        // Get financial planner document for savings data
+        DocumentSnapshot financialDoc = await FirebaseFirestore.instance
+            .collection('financialPlanner')
             .doc(user.uid)
             .get();
 
@@ -42,7 +49,8 @@ class _ProfilePageState extends State<ProfilePage> {
             email = userDoc['email'];
             panNumber = userDoc['panNumber'];
             phoneNumber = userDoc['phoneNumber'];
-            portfolioValue = userDoc['portfolioValue'];
+            // Get savings from financial planner document
+            savings = financialDoc.exists ? financialDoc['savings']?.toString() : '0.0';
           });
         }
       }
@@ -63,8 +71,8 @@ class _ProfilePageState extends State<ProfilePage> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF1A2980),  // Deep navy blue
-            Color(0xFF26D0CE),  // Teal accent
+            Color(0xFF1A2980), // Deep navy blue
+            Color(0xFF26D0CE), // Teal accent
           ],
         ),
       ),
@@ -139,7 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     label: 'Profile',
                   ),
                 ],
-                selectedItemColor: Color(0xFF0F2027),
+                selectedItemColor: Color(0xFF003BFF),
                 unselectedItemColor: Colors.grey,
                 selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
               ),
@@ -158,23 +166,6 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: CircleAvatar(
-                radius: 70,
-                backgroundImage: AssetImage('assets/profile_placeholder.png'),
-                backgroundColor: Colors.white,
-              ),
-            ),
             const SizedBox(height: 20),
             Text(
               fullName ?? 'Loading...',
@@ -189,7 +180,7 @@ class _ProfilePageState extends State<ProfilePage> {
             Text(
               email ?? 'Loading...',
               style: TextStyle(
-                fontSize: 16, 
+                fontSize: 16,
                 color: Colors.white70,
                 letterSpacing: 1.1,
               ),
@@ -211,9 +202,9 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   _buildInfoCard(
-                    icon: Icons.account_balance_wallet,
-                    title: 'Portfolio Value',
-                    value: portfolioValue ?? 'Loading...',
+                    icon: Icons.savings,
+                    title: 'Total Savings',
+                    value: savings != null ? '₹${double.parse(savings!).toStringAsFixed(2)}' : 'Loading...',
                   ),
                   Divider(color: Colors.grey[300], thickness: 1),
                   _buildInfoCard(
@@ -255,7 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Text(
                     'Log Out',
                     style: TextStyle(
-                      color: Colors.white, 
+                      color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),

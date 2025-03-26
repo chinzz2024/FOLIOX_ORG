@@ -110,7 +110,7 @@ Recommendation:
             Navigator.pop(context);
           },
         ),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        backgroundColor: Color(0xFF0F2027),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

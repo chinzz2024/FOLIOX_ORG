@@ -137,8 +137,7 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
       margin: EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         title: Text(
-          _formatAssetName(
-              asset['name']), // Now name doesn't have 'assets.' prefix
+          _formatAssetName(asset['name']),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('₹${(asset['amount'] ?? 0).toStringAsFixed(2)}'),
@@ -160,7 +159,6 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
   }
 
   String _formatAssetName(String name) {
-    // Now we only need to format camelCase to readable format
     name = name.replaceAllMapped(
         RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}');
     return name[0].toUpperCase() + name.substring(1);
@@ -202,6 +200,62 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
     );
   }
 
+  Widget _buildResultRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 14)),
+          Text(value,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsCard() {
+    if (emi <= 0) return SizedBox.shrink();
+    
+    return Column(
+      children: [
+        SizedBox(height: 20),
+        Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('EMI Calculation Results',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                _buildResultRow(
+                    'Property Value', '₹${propertyValueController.text}'),
+                _buildResultRow(
+                    'Down Payment', '₹${downPaymentController.text}'),
+                _buildResultRow(
+                    'Loan Amount', '₹${loanAmount.toStringAsFixed(2)}'),
+                Divider(),
+                _buildResultRow(
+                    'Monthly EMI', '₹${emi.toStringAsFixed(2)}'),
+                _buildResultRow('Total Interest',
+                    '₹${totalInterest.toStringAsFixed(2)}'),
+                _buildResultRow('Total Payment',
+                    '₹${totalPayment.toStringAsFixed(2)}'),
+                SizedBox(height: 10),
+                Text(
+                  'Note: Based on ${tenureController.text} years at ${interestController.text}% interest',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -217,7 +271,7 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Dream Home', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        backgroundColor: Color(0xFF0F2027),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -237,6 +291,10 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
             _buildInputField('Interest Rate (%)', interestController),
             _buildInputField('Loan Tenure (Years)', tenureController),
             SizedBox(height: 20),
+            
+            // Show results immediately after input fields
+            _buildResultsCard(),
+            
             Text('Your Available Assets for Down Payment',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
@@ -251,6 +309,7 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
                   children: assetList
                       .map((asset) => _buildAssetItem(asset))
                       .toList()),
+            
             SizedBox(height: 20),
             Text('Available Home Loan Rates',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -266,58 +325,8 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
                   children: loanRates
                       .map((rate) => _buildLoanRateItem(rate))
                       .toList()),
-            SizedBox(height: 20),
-            if (emi > 0) ...[
-              Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('EMI Calculation Results',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-                      _buildResultRow(
-                          'Property Value', '₹${propertyValueController.text}'),
-                      _buildResultRow(
-                          'Down Payment', '₹${downPaymentController.text}'),
-                      _buildResultRow(
-                          'Loan Amount', '₹${loanAmount.toStringAsFixed(2)}'),
-                      Divider(),
-                      _buildResultRow(
-                          'Monthly EMI', '₹${emi.toStringAsFixed(2)}'),
-                      _buildResultRow('Total Interest',
-                          '₹${totalInterest.toStringAsFixed(2)}'),
-                      _buildResultRow('Total Payment',
-                          '₹${totalPayment.toStringAsFixed(2)}'),
-                      SizedBox(height: 10),
-                      Text(
-                        'Note: Based on ${tenureController.text} years at ${interestController.text}% interest',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildResultRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 14)),
-          Text(value,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }

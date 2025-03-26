@@ -5,20 +5,23 @@ import 'home_page.dart';
 
 class StockListPage extends StatelessWidget {
   final List<Map<String, dynamic>> stocks = [
-    {
-      'name': 'Reliance Industries',
-      'symbol': 'RELIANCE',
-      'symbolToken': '2885'
-    },
-    {
-      'name': 'Tata Consultancy Services',
-      'symbol': 'TCS',
-      'symbolToken': '11536'
-    },
+
+    {'name': 'Reliance Industries', 'symbol': 'RELIANCE', 'symbolToken': '2885'},
+    {'name': 'Tata Consultancy Services', 'symbol': 'TCS', 'symbolToken': '11536'},
+    {'name': 'Infosys', 'symbol': 'INFY', 'symbolToken': '1594'},
+    {'name': 'ICICI Bank', 'symbol': 'ICICIBANK', 'symbolToken': '4963'},
+    {'name': 'Hindustan Unilever', 'symbol': 'HINDUNILVR', 'symbolToken': '1394'},
+    {'name': 'Bharti Airtel', 'symbol': 'BHARTIARTL', 'symbolToken': '10604'},
+    {'name': 'ITC Limited', 'symbol': 'ITC', 'symbolToken': '1660'},
+    {'name': 'Larsen & Toubro', 'symbol': 'LT', 'symbolToken': '11483'},
+    {'name': 'Asian Paints', 'symbol': 'ASIANPAINT', 'symbolToken': '1363'},
+    {'name': 'Kotak Mahindra Bank', 'symbol': 'KOTAKBANK', 'symbolToken': '1922'},
+
     {'name': 'HDFC Bank', 'symbol': 'HDFCBANK', 'symbolToken': '1333'},
     {'name': 'HITECH', 'symbol': 'HITECH', 'symbolToken': '2868'},
     {'name': 'State Bank of India', 'symbol': 'SBI', 'symbolToken': '3045'},
     {'name': 'Dixon', 'symbol': 'DIXON', 'symbolToken': '21690'},
+
   ];
 
   StockListPage({super.key});
