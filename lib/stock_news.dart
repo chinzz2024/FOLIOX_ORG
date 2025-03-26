@@ -30,33 +30,35 @@ class _StockNewsPageState extends State<StockNewsPage>
     fetchStockNews();
   }
 
-  Future<void> _initializePurchasedStocks() async {
-    try {
-      final User? user = FirebaseAuth.instance.currentUser; // Get current user
-      if (user != null) {
-        // Fetch user's portfolio from Firestore
-        final QuerySnapshot portfolioSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('portfolios')
-            .get();
+Future<void> _initializePurchasedStocks() async {
+  try {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Fetch user's investments document from Firestore
+      final DocumentSnapshot userInvestments = await FirebaseFirestore.instance
+          .collection('user_investments')
+          .doc(user.uid)
+          .get();
 
-        // Extract stock names and update purchasedStocks
+      if (userInvestments.exists) {
+        // Get all the field names (which are stock names) from the document
+        final data = userInvestments.data() as Map<String, dynamic>;
         setState(() {
-          purchasedStocks = portfolioSnapshot.docs
-              .map((doc) => doc['stockName'] as String)
-              .toList();
+          purchasedStocks = data.keys.toList(); // This gets all the stock names
         });
 
         // Log the purchased stocks
         debugPrint('Purchased Stocks: $purchasedStocks');
       } else {
-        debugPrint('User not logged in');
+        debugPrint('No investments found for this user');
       }
-    } catch (e) {
-      debugPrint('Error fetching purchased stocks: $e');
+    } else {
+      debugPrint('User not logged in');
     }
+  } catch (e) {
+    debugPrint('Error fetching purchased stocks: $e');
   }
+}
 
   Future<void> fetchStockNews() async {
     const url = 'http://127.0.0.1:5000/stock-news'; // Backend API URL
