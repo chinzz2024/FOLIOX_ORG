@@ -18,7 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? email;
   String? panNumber;
   String? phoneNumber;
-  String? savings; // Changed from portfolioValue to savings
+  Map<String, dynamic> financialData = {};
   bool isLoading = true;
 
   @override
@@ -31,26 +31,23 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Get user document
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
 
-        // Get financial planner document for savings data
         DocumentSnapshot financialDoc = await FirebaseFirestore.instance
             .collection('financialPlanner')
             .doc(user.uid)
             .get();
 
-        if (userDoc.exists) {
+        if (userDoc.exists && financialDoc.exists) {
           setState(() {
             fullName = userDoc['fullName'];
             email = userDoc['email'];
             panNumber = userDoc['panNumber'];
             phoneNumber = userDoc['phoneNumber'];
-            // Get savings from financial planner document
-            savings = financialDoc.exists ? financialDoc['savings']?.toString() : '0.0';
+            financialData = financialDoc.data() as Map<String, dynamic>;
           });
         }
       }
@@ -65,238 +62,553 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF1A2980), // Deep navy blue
-            Color(0xFF26D0CE), // Teal accent
-          ],
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1A2980), // Deep blue
+              Color(0xFF26D0CE), // Teal
+            ],
+            stops: [0.1, 0.9],
+          ),
         ),
-      ),
-      child: SafeArea(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            elevation: 0,
-            title: Text(
-              'Profile',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.3,
-                fontSize: 20,
-              ),
-            ),
-            backgroundColor: Color(0xFF0F2027), // Dark blue AppBar
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: Icon(Icons.edit, color: Colors.white),
-                onPressed: () {
-                  // Add edit profile functionality
-                },
+        child: SafeArea(
+          child: Column(
+            children: [
+              // App Bar
+              _buildAppBar(),
+              
+              // Main Content
+              Expanded(
+                child: isLoading
+                    ? Center(child: CircularProgressIndicator(color: Colors.white))
+                    : SingleChildScrollView(
+                        physics: BouncingScrollPhysics(),
+                        padding: EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            // Profile Header
+                            _buildProfileHeader(),
+                            SizedBox(height: 30),
+
+                            // Financial Overview Cards
+                            _buildFinancialOverview(),
+                            SizedBox(height: 20),
+
+                            // Expense Breakdown
+                            _buildExpenseSection(),
+                            SizedBox(height: 30),
+
+                            // Personal Information
+                            _buildPersonalInfoSection(),
+                            SizedBox(height: 30),
+
+                            // Logout Button
+                            _buildLogoutButton(),
+                          ],
+                        ),
+                      ),
               ),
             ],
           ),
-          body: isLoading
-              ? Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : userDataUI(),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(25),
-                topRight: Radius.circular(25),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 15,
-                  offset: Offset(0, -5),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(25),
-                topRight: Radius.circular(25),
-              ),
-              child: BottomNavigationBar(
-                backgroundColor: Colors.white,
-                currentIndex: _currentIndex,
-                onTap: _onBottomNavTapped,
-                type: BottomNavigationBarType.fixed,
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.trending_up),
-                    label: 'Stocks',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.savings),
-                    label: 'Planner',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person),
-                    label: 'Profile',
-                  ),
-                ],
-                selectedItemColor: Color(0xFF003BFF),
-                unselectedItemColor: Colors.grey,
-                selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      title: Text(
+        'My Profile',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 22,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: Icon(Icons.edit, color: Colors.white),
+          onPressed: () => _showEditProfileDialog(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    String initial = fullName?.isNotEmpty == true ? fullName![0].toUpperCase() : '?';
+    
+    return Column(
+      children: [
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.2),
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Center(
+            child: Text(
+              initial,
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
         ),
-      ),
+        SizedBox(height: 16),
+        Text(
+          fullName ?? 'User Name',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          email ?? 'user@email.com',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget userDataUI() {
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildFinancialOverview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Text(
+            'Financial Overview',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        SizedBox(height: 12),
+        Row(
           children: [
-            const SizedBox(height: 20),
-            Text(
-              fullName ?? 'Loading...',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 1.2,
+            Expanded(
+              child: _buildStatCard(
+                title: 'Income',
+                value: '₹${financialData['totalIncome']?.toStringAsFixed(2) ?? '0.00'}',
+                icon: Icons.arrow_upward,
+                color: Color(0xFF4CAF50),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              email ?? 'Loading...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-                letterSpacing: 1.1,
-              ),
-            ),
-            const SizedBox(height: 30),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 15,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildInfoCard(
-                    icon: Icons.savings,
-                    title: 'Total Savings',
-                    value: savings != null ? '₹${double.parse(savings!).toStringAsFixed(2)}' : 'Loading...',
-                  ),
-                  Divider(color: Colors.grey[300], thickness: 1),
-                  _buildInfoCard(
-                    icon: Icons.phone,
-                    title: 'Phone Number',
-                    value: phoneNumber ?? 'Loading...',
-                  ),
-                  Divider(color: Colors.grey[300], thickness: 1),
-                  _buildInfoCard(
-                    icon: Icons.credit_card,
-                    title: 'PAN Number',
-                    value: panNumber ?? 'Loading...',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 5,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.logout, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text(
-                    'Log Out',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                title: 'Savings',
+                value: '₹${financialData['savings']?.toStringAsFixed(2) ?? '0.00'}',
+                icon: Icons.savings,
+                color: Color(0xFF2196F3),
               ),
             ),
           ],
         ),
-      ),
+        SizedBox(height: 12),
+        _buildStatCard(
+          title: 'Savings Rate',
+          value: '${((financialData['savings'] ?? 0) / (financialData['totalIncome'] ?? 1) * 100).toStringAsFixed(1)}%',
+          icon: Icons.trending_up,
+          color: Color(0xFF9C27B0),
+          fullWidth: true,
+        ),
+      ],
     );
   }
 
-  Widget _buildInfoCard({
-    required IconData icon,
+  Widget _buildStatCard({
     required String title,
     required String value,
+    required IconData icon,
+    required Color color,
+    bool fullWidth = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
+    return Container(
+      width: fullWidth ? double.infinity : null,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Color(0xFF0F2027), size: 30),
-          SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                SizedBox(height: 5),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black54,
-                  ),
+                child: Icon(icon, size: 20, color: color),
+              ),
+              SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
                 ),
-              ],
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildExpenseSection() {
+    double totalExpenses = (financialData['totalEssentialExpenses'] ?? 0) + 
+                          (financialData['totalOptionalExpenses'] ?? 0);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Text(
+            'Expense Breakdown',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        SizedBox(height: 12),
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _buildExpenseCategory(
+                label: 'Essential',
+                amount: financialData['totalEssentialExpenses']?.toDouble() ?? 0,
+                total: totalExpenses,
+                color: Color(0xFF1A2980),
+              ),
+              SizedBox(height: 12),
+              _buildExpenseCategory(
+                label: 'Optional',
+                amount: financialData['totalOptionalExpenses']?.toDouble() ?? 0,
+                total: totalExpenses,
+                color: Color(0xFF26D0CE),
+              ),
+              SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildExpenseTag(
+                    icon: Icons.shopping_cart,
+                    label: 'Shopping',
+                    value: '₹${financialData['shopping']?.toStringAsFixed(2) ?? '0.00'}',
+                  ),
+                  _buildExpenseTag(
+                    icon: Icons.airplanemode_active,
+                    label: 'Travel',
+                    value: '₹${financialData['travelVacations']?.toStringAsFixed(2) ?? '0.00'}',
+                  ),
+                  _buildExpenseTag(
+                    icon: Icons.fitness_center,
+                    label: 'Fitness',
+                    value: '₹${financialData['fitnessSym']?.toStringAsFixed(2) ?? '0.00'}',
+                  ),
+                  _buildExpenseTag(
+                    icon: Icons.movie,
+                    label: 'Entertainment',
+                    value: '₹${financialData['entertainment']?.toStringAsFixed(2) ?? '0.00'}',
+                  ),
+                  _buildExpenseTag(
+                    icon: Icons.palette,
+                    label: 'Hobbies',
+                    value: '₹${financialData['hobbiesLeisure']?.toStringAsFixed(2) ?? '0.00'}',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpenseCategory({
+    required String label,
+    required double amount,
+    required double total,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            Text(
+              '₹${amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 6),
+        LinearProgressIndicator(
+          value: total > 0 ? amount / total : 0,
+          minHeight: 6,
+          backgroundColor: Colors.grey[200],
+          color: color,
+        ),
+        SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${total > 0 ? (amount / total * 100).toStringAsFixed(1) : '0'}% of expenses',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            Text(
+              '${total > 0 ? (amount / (financialData['totalIncome'] ?? 1) * 100).toStringAsFixed(1) : '0'}% of income',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpenseTag({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Color(0xFF1A2980)),
+          SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(width: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A2980),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalInfoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Text(
+            'Personal Information',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        SizedBox(height: 12),
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _buildInfoRow(icon: Icons.phone, label: 'Phone', value: phoneNumber ?? 'Not set'),
+              Divider(height: 24, thickness: 1),
+              _buildInfoRow(icon: Icons.credit_card, label: 'PAN', value: panNumber ?? 'Not set'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 24, color: Color(0xFF1A2980)),
+        SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.red,
+          padding: EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.red),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          'Log Out',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  BottomNavigationBar _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      backgroundColor: Colors.white,
+      currentIndex: _currentIndex,
+      onTap: _onBottomNavTapped,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Color(0xFF1A2980),
+      unselectedItemColor: Colors.grey[600],
+      selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.trending_up),
+          label: 'Stocks',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.savings),
+          label: 'Planner',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Profile',
+        ),
+      ],
     );
   }
 
@@ -319,5 +631,92 @@ class _ProfilePageState extends State<ProfilePage> {
         MaterialPageRoute(builder: (context) => const PlannerPage()),
       );
     }
+  }
+
+  Future<void> _showEditProfileDialog(BuildContext context) async {
+    final nameController = TextEditingController(text: fullName);
+    final phoneController = TextEditingController(text: phoneNumber);
+    final panController = TextEditingController(text: panNumber);
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: panController,
+                decoration: InputDecoration(
+                  labelText: 'PAN Number',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                User? user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .update({
+                    'fullName': nameController.text,
+                    'phoneNumber': phoneController.text,
+                    'panNumber': panController.text,
+                  });
+                  setState(() {
+                    fullName = nameController.text;
+                    phoneNumber = phoneController.text;
+                    panNumber = panController.text;
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Profile updated successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error updating profile: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text('Save', style: TextStyle(color: Color(0xFF1A2980))),
+          ),
+        ],
+      ),
+    );
   }
 }

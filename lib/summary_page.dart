@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-<<<<<<< HEAD
-import 'dart:math'; // For pow() function
-=======
 import 'calculation_page.dart';
 import 'dart:math';
->>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
 import 'dreamcar.dart';
 import 'retire.dart';
 import 'dream.dart';
@@ -308,71 +304,6 @@ class _SummaryPageState extends State<SummaryPage> {
                   color: Color(0xFF2E7D32),
                 ),
               ),
-<<<<<<< HEAD
-              const SizedBox(height: 10),
-              Column(
-                children: goalsSelected.map((goal) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    child: GestureDetector(
-                      onTap: () async {
-                        if (!mounted) return;
-                        
-                        // Goal-specific navigation
-                        switch (goal) {
-                          case 'Marriage':
-                            await Navigator.push(
-                              context, 
-                              MaterialPageRoute(builder: (context) => MarriageGoalPage()),
-                            );
-                            _fetchFinancialData();
-                            break;
-                          case 'Dream Car':
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DreamcarPage(),
-                              ),
-                            );
-                            _fetchFinancialData();
-                            break;
-                          case 'Retirement':
-                            await Navigator.push(
-                              context, 
-                              MaterialPageRoute(builder: (context) => RetireEarly()),
-                            );
-                            _fetchFinancialData();
-                            break;
-                          case 'Dream Home':
-                            await Navigator.push(
-                              context, 
-                              MaterialPageRoute(builder: (context) => DreamHomeScreen()),
-                            );
-                            _fetchFinancialData();
-                            break;
-                          case 'Emergency Fund':
-                            await Navigator.push(
-                              context, 
-                              MaterialPageRoute(builder: (context) => EmergencyFund()),
-                            );
-                            _fetchFinancialData();
-                            break;
-                        }
-                      },
-                      child: Text(
-                        '👉 Click here to plan for $goal', 
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-=======
->>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
             ],
           ],
         ),
@@ -825,7 +756,7 @@ class _SummaryPageState extends State<SummaryPage> {
   void _navigateToGoalPage(String goal) async {
     Widget page;
     switch (goal) {
-      case 'Marriage': page = Marriage(); break;
+      case 'Marriage': page = MarriageGoalPage(); break;
       case 'Dream Car': page = DreamcarPage(); break;
       case 'Retirement': page = RetireEarly(); break;
       case 'Dream Home': page = DreamHomeScreen(); break;

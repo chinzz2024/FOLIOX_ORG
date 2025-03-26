@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'calculation_page.dart';
 import 'summary_page.dart';
 
 class IncomePage extends StatefulWidget {
@@ -265,33 +266,6 @@ Future<void> _saveToFirestore() async {
           existingData['optionalExpenses']?['hobbiesLeisure'] ??
           0,
     };
-<<<<<<< HEAD
-// ✅ Goals Processing
-List<Map<String, dynamic>> goalsList = selectedGoals.map<Map<String, dynamic>>((goalData) {
-  final goal = goalData['goal'];
-
-  if (goal == "Dream Car" || goal == "Dream Home" || goal == "Emergency Fund") {
-    return {'goal': goal};
-  } else if (goal == "Retirement") {
-    return {
-      'goal': goal,
-      'currentAge': int.tryParse(retirementControllers['currentAge']?.text ?? '') ?? 
-          (goalData['currentAge']),
-      'retirementAge': int.tryParse(retirementControllers['retirementAge']?.text ?? '') ?? 
-          (goalData['retirementAge']),
-    };
-  } else if (goal == "Marriage") {
-    return {
-      'goal': goal,
-      'estimatedBudget': double.tryParse(goalBudgetControllers[goal]?.text ?? '') ?? 
-          (goalData['estimatedBudget']),
-      'targetYear': int.tryParse(goalYearsControllers[goal]?.text ?? '') ?? 
-          (goalData['targetYear']),
-    };
-  }
-  return {};
-}).toList();
-=======
 
     // ✅ Assets - New structure as requested
     updatedData['assets'] = {
@@ -314,7 +288,6 @@ List<Map<String, dynamic>> goalsList = selectedGoals.map<Map<String, dynamic>>((
           existingData['assets']?['Public Provident Fund'] ??
           0,
     };
->>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
 
     // ✅ Goals Processing
     List<Map<String, dynamic>> goalsList = selectedGoals.map<Map<String, dynamic>>((goalData) {
@@ -573,7 +546,7 @@ Center(
               ],
             ],
           );
-        }),
+        }).toList(),
 
         // Add goal button
         Center(
@@ -612,4 +585,3 @@ Center(
     );
   }
 }
-

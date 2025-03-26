@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-<<<<<<< HEAD
-=======
 import 'package:foliox/login_page.dart';
 import 'package:foliox/stock_sell.dart';
->>>>>>> 613f596f6d992ea766dae101c472ee77c91b5365
 import 'planner_page.dart';
 import 'stock_news.dart';
 import 'stock_list.dart';

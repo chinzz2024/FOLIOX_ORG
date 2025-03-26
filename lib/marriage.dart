@@ -198,13 +198,16 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Marriage Goal Planner'),
+        title: const Text('Marriage Goal Planner',style: TextStyle(color: Colors.white),),
+        leading: IconButton(onPressed: ()=>Navigator.pop(context), icon: Icon(Icons.arrow_back,color: Colors.white,)),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _saveGoalData,
+          
           ),
         ],
+         backgroundColor: Color(0xFF0F2027),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
