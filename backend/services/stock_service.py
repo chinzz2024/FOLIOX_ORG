@@ -61,4 +61,4 @@ def fetch_stock_news():
             print(f"Error scraping page {page_num}: {str(e)}")
             continue
 
-    return stock_news[:100]  # Return maximum 100 news items to avoid too much data
+    return stock_news[:200]  # Return maximum 100 news items to avoid too much data
