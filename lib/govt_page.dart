@@ -193,7 +193,6 @@ void _updateGoal(int index, String? newGoal) {
     selectedGoals[index]['goal'] = newGoal;
   });
 }
-
 Future<void> _saveToFirestore() async {
   String? userId = FirebaseAuth.instance.currentUser?.uid;
   if (userId == null) return;
@@ -267,36 +266,59 @@ Future<void> _saveToFirestore() async {
           existingData['optionalExpenses']?['hobbiesLeisure'] ??
           0,
     };
-// ✅ Goals Processing
-List<Map<String, dynamic>> goalsList = selectedGoals.map<Map<String, dynamic>>((goalData) {
-  if (goalData is! Map<String, dynamic>) return {};
-  final goal = goalData['goal'];
 
-  if (goal == "Dream Car" || goal == "Dream Home" || goal == "Emergency Fund") {
-    return {'goal': goal};
-  } else if (goal == "Retirement") {
-    return {
-      'goal': goal,
-      'currentAge': int.tryParse(retirementControllers['currentAge']?.text ?? '') ?? 
-          (goalData['currentAge'] ?? null),
-      'retirementAge': int.tryParse(retirementControllers['retirementAge']?.text ?? '') ?? 
-          (goalData['retirementAge'] ?? null),
+    // ✅ Assets - New structure as requested
+    updatedData['assets'] = {
+      'Fixed Deposits': num.tryParse(fixedDepositsController.text) ??
+          existingData['assets']?['Fixed Deposits'] ??
+          0,
+      'Recurring Deposits': num.tryParse(recurringDepositsController.text) ??
+          existingData['assets']?['Recurring Deposits'] ??
+          0,
+      'Savings Account': num.tryParse(savingsAccountController.text) ??
+          existingData['assets']?['Savings Account'] ??
+          0,
+      'Current Account': num.tryParse(currentAccountController.text) ??
+          existingData['assets']?['Current Account'] ??
+          0,
+      'Employee Provident Fund': num.tryParse(employeeProvidentFundController.text) ??
+          existingData['assets']?['Employee Provident Fund'] ??
+          0,
+      'Public Provident Fund': num.tryParse(publicProvidentFundController.text) ??
+          existingData['assets']?['Public Provident Fund'] ??
+          0,
     };
-  } else if (goal == "Marriage") {
-    return {
-      'goal': goal,
-      'estimatedBudget': double.tryParse(goalBudgetControllers[goal]?.text ?? '') ?? 
-          (goalData['estimatedBudget'] ?? null),
-      'targetYear': int.tryParse(goalYearsControllers[goal]?.text ?? '') ?? 
-          (goalData['targetYear'] ?? null),
-    };
-  }
-  return {};
-}).toList();
 
-if (goalsList.isNotEmpty) {
-  updatedData['goalsSelected'] = goalsList;
-}
+    // ✅ Goals Processing
+    List<Map<String, dynamic>> goalsList = selectedGoals.map<Map<String, dynamic>>((goalData) {
+      if (goalData is! Map<String, dynamic>) return {};
+      final goal = goalData['goal'];
+
+      if (goal == "Dream Car" || goal == "Dream Home" || goal == "Emergency Fund") {
+        return {'goal': goal};
+      } else if (goal == "Retirement") {
+        return {
+          'goal': goal,
+          'currentAge': int.tryParse(retirementControllers['currentAge']?.text ?? '') ?? 
+              (goalData['currentAge'] ?? null),
+          'retirementAge': int.tryParse(retirementControllers['retirementAge']?.text ?? '') ?? 
+              (goalData['retirementAge'] ?? null),
+        };
+      } else if (goal == "Marriage") {
+        return {
+          'goal': goal,
+          'estimatedBudget': double.tryParse(goalBudgetControllers[goal]?.text ?? '') ?? 
+              (goalData['estimatedBudget'] ?? null),
+          'targetYear': int.tryParse(goalYearsControllers[goal]?.text ?? '') ?? 
+              (goalData['targetYear'] ?? null),
+        };
+      }
+      return {};
+    }).toList();
+
+    if (goalsList.isNotEmpty) {
+      updatedData['goalsSelected'] = goalsList;
+    }
 
     // Step 3: Update Firestore first (to store the new values)
     await userDocRef.set(updatedData, SetOptions(merge: true));
@@ -331,7 +353,6 @@ if (goalsList.isNotEmpty) {
     );
   }
 }
-
 // 🔥 **Fix: Ensure Only `num` Values are Summed**
 double _calculateCategoryTotal(Map<String, dynamic> category) {
   return category.values.fold(0.0, (sum, value) {
