@@ -131,7 +131,7 @@ class _StockSellState extends State<StockSell> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
               child: CircularProgressIndicator(
-                color: Colors.deepPurple,
+                color: Colors.blue,
               ),
             );
           }
@@ -183,7 +183,7 @@ class _StockSellState extends State<StockSell> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.deepPurple,
+                              color: Colors.blue,
                             ),
                           ),
                           Text(
@@ -279,7 +279,7 @@ class _StockSellState extends State<StockSell> {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple,
+                              backgroundColor: Colors.blue,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
