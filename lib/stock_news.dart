@@ -278,9 +278,9 @@ Widget build(BuildContext context) {
                           size: 100,
                           color: Colors.white,
                         ),
-                        const SizedBox(height: 20),
+                       const SizedBox(height: 20),
                         Text(
-                          'No saved stock news',
+                          'No Stock News',
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white,
