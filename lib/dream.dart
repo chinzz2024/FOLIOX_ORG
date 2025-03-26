@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'dart:math';
 
 class DreamHomeScreen extends StatefulWidget {
+  const DreamHomeScreen({super.key});
+
   @override
   State<DreamHomeScreen> createState() => _DreamHomeScreenState();
 }

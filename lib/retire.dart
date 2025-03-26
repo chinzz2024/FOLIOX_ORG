@@ -25,7 +25,7 @@ class _RetireEarlyState extends State<RetireEarly> {
   double _projectedAmount = 0;
   double _monthlyExpenses = 0;
   final TextEditingController _investmentController = TextEditingController();
-  bool _showInvestmentInput = true;
+  final bool _showInvestmentInput = true;
   User? _currentUser;
 
   @override

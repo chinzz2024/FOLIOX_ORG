@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:foliox/login_page.dart';
 import 'planner_page.dart';
 import 'stock_news.dart';
 import 'stock_list.dart';

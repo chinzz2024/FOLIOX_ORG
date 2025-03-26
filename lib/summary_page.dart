@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'calculation_page.dart'; // Import the CalculationPage
 import 'dart:math'; // For pow() function
 import 'dreamcar.dart';
 import 'retire.dart';
@@ -359,7 +358,7 @@ Widget build(BuildContext context) {
                           case 'Marriage':
                             await Navigator.push(
                               context, 
-                              MaterialPageRoute(builder: (context) => Marriage()),
+                              MaterialPageRoute(builder: (context) => MarriageGoalPage()),
                             );
                             _fetchFinancialData();
                             break;
