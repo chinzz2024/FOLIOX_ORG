@@ -27,7 +27,7 @@ class _StockDataPageState extends State<StockDataPage> {
 
   Future<void> fetchHistoricalData() async {
     final String fromDate = '2000-01-01 00:00';
-    final String toDate = '2025-03-26 15:30';
+    final String toDate = '2025-03-27 11:15';
 
     final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
     final response = await http.post(

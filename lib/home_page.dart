@@ -55,7 +55,7 @@ class _HomepageState extends State<Homepage> {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            elevation: 0,
+            
             title: Text(
               'Stocks',
               style: TextStyle(

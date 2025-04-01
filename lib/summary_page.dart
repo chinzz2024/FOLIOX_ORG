@@ -20,17 +20,17 @@ class SummaryPage extends StatefulWidget {
 }
 
 class _SummaryPageState extends State<SummaryPage> {
-  double income = 0;
-  double essentialExpenses = 0;
-  double optionalExpenses = 0;
-  double savings = 0;
+  int income = 0;
+  int essentialExpenses = 0;
+  int optionalExpenses = 0;
+  int savings = 0;
   bool isLoading = true;
-  Map<String, double> essentialExpensesMap = {};
-  Map<String, double> optionalExpensesMap = {};
+  Map<String, int> essentialExpensesMap = {};
+  Map<String, int> optionalExpensesMap = {};
   List<String> goalsSelected = [];
   String _errorMessage = '';
   String? selectedGoal;
-  double marriageBudget = 0;
+  int marriageBudget = 0;
   bool _hasError = false;
 
   int marriageYears = 0;
@@ -41,7 +41,9 @@ class _SummaryPageState extends State<SummaryPage> {
   @override
   void initState() {
     super.initState();
-    _fetchFinancialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchFinancialData();
+    });
   }
 
   @override
@@ -79,34 +81,50 @@ class _SummaryPageState extends State<SummaryPage> {
         return;
       }
 
-      final data = snapshot.data() as Map<String, dynamic>?;
-      if (data == null) {
-        _handleError('Invalid data format');
-        return;
+      final data = snapshot.data() as Map<String, dynamic>? ?? {};
+      
+      // Safely parse all data as integers
+      final parsedIncome = _parseInt(data['totalIncome']);
+      final parsedEssentialExpenses = _parseInt(data['totalEssentialExpenses']);
+      final parsedOptionalExpenses = _parseInt(data['totalOptionalExpenses']);
+      final parsedSavings = _parseInt(data['savings']);
+      
+      final parsedEssentialMap = (data['essentialExpenses'] is Map<String, dynamic> 
+    ? (data['essentialExpenses'] as Map<String, dynamic>).map<String, int>(
+        (k, v) => MapEntry(k, _parseInt(v)))
+    : <String, int>{});
+
+final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
+    ? (data['optionalExpenses'] as Map<String, dynamic>).map<String, int>(
+        (k, v) => MapEntry(k, _parseInt(v)))
+    : <String, int>{});
+
+      final parsedGoals = _parseGoals(data['goalsSelected'] ?? []);
+      
+      int parsedMarriageBudget = 0;
+      int parsedMarriageYears = 0;
+      
+      if (parsedGoals.contains('Marriage')) {
+        parsedMarriageBudget = _parseInt(data['estimatedBudget']);
+        parsedMarriageYears = _parseInt(data['targetYear']);
       }
 
       if (mounted) {
         setState(() {
-          income = _parseDouble(data['totalIncome']);
-          essentialExpenses = _parseDouble(data['totalEssentialExpenses']);
-          optionalExpenses = _parseDouble(data['totalOptionalExpenses']);
-          savings = _parseDouble(data['savings']);
+          income = parsedIncome;
+          essentialExpenses = parsedEssentialExpenses;
+          optionalExpenses = parsedOptionalExpenses;
+          savings = parsedSavings;
+          essentialExpensesMap = parsedEssentialMap;
+          optionalExpensesMap = parsedOptionalMap;
+          goalsSelected = parsedGoals;
+          marriageBudget = parsedMarriageBudget;
+          marriageYears = parsedMarriageYears;
           
-          essentialExpensesMap = data['essentialExpenses'] is Map 
-              ? Map<String, double>.from(data['essentialExpenses'])
-              : {};
-          optionalExpensesMap = data['optionalExpenses'] is Map
-              ? Map<String, double>.from(data['optionalExpenses'])
-              : {};
-
-          goalsSelected = _parseGoals(data['goalsSelected']);
-
           if (goalsSelected.contains('Marriage')) {
-            marriageBudget = _parseDouble(data['estimatedBudget']);
-            marriageYears = _parseInt(data['targetYear']);
             _calculateMarriageDetails();
           }
-
+          
           isLoading = false;
         });
       }
@@ -115,27 +133,23 @@ class _SummaryPageState extends State<SummaryPage> {
     } on TimeoutException {
       _handleError('Request timed out. Please try again');
     } catch (e) {
-      _handleError('An unexpected error occurred');
+      _handleError('An unexpected error occurred: $e');
     }
   }
 
   List<String> _parseGoals(dynamic goalsData) {
-    if (goalsData is! List) return [];
-    return goalsData.map((goal) {
-      if (goal is Map) return goal['goal']?.toString() ?? '';
-      return goal.toString();
-    }).toList();
-  }
-
-  double _parseDouble(dynamic value) {
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
-    return 0.0;
+    if (goalsData is List) {
+      return goalsData.map((goal) {
+        if (goal is Map) return goal['goal']?.toString() ?? '';
+        return goal.toString();
+      }).where((goal) => goal.isNotEmpty).toList();
+    }
+    return [];
   }
 
   int _parseInt(dynamic value) {
     if (value is int) return value;
+    if (value is double) return value.round();
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
   }
@@ -158,57 +172,72 @@ class _SummaryPageState extends State<SummaryPage> {
   }
 
   void _calculateMarriageDetails() {
-    if (marriageBudget > 0 && marriageYears > 0) {
-      double inflatedAmount = marriageBudget * pow(1.07, marriageYears);
+  if (marriageBudget > 0 && marriageYears > 0) {
+    // Calculate inflated amount (7% annual inflation)
+    int inflatedAmount = (marriageBudget * pow(1.07, marriageYears)).round();
+    
+    // Calculate SIP future value (12% annual return, monthly compounding)
+    int sipFutureValue = (10000 * ((pow(1.01, marriageYears * 12) - 1) / 0.01 * 1.01).round());
+    
+    // Calculate FD future value (7% annual return)
+    int fdFutureValue = (savings * pow(1.07, marriageYears)).round();
+
+    setState(() {
       inflationResult =
-          "You would need ₹${inflatedAmount.toStringAsFixed(2)} for your marriage in $marriageYears years.";
+          "You would need ₹$inflatedAmount for your marriage in $marriageYears years.";
 
-      double sipFutureValue =
-          10000 * ((pow(1 + 0.01, marriageYears * 12) - 1) / 0.01) * (1 + 0.01);
       sipSuggestion =
-          "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹${sipFutureValue.toStringAsFixed(2)} in $marriageYears years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
+          "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹$sipFutureValue in $marriageYears years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
 
-      double fdFutureValue = savings * pow(1.07, marriageYears);
       fdSuggestion =
-          "Placing your current savings of ₹${savings.toStringAsFixed(2)} in an FD at 7% annual return would grow to ₹${fdFutureValue.toStringAsFixed(2)} in $marriageYears years.";
-    } else {
+          "Placing your current savings of ₹$savings in an FD at 7% annual return would grow to ₹$fdFutureValue in $marriageYears years.";
+    });
+  } else {
+    setState(() {
       inflationResult = '';
       sipSuggestion = '';
       fdSuggestion = '';
-    }
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
-    // Calculate percentages
-    double needsPercentage = (essentialExpenses / income) * 100;
-    double wantsPercentage = (optionalExpenses / income) * 100;
-    double savingsPercentage = (savings / income) * 100;
+    if (isLoading) {
+      return _buildLoadingScreen();
+    }
+
+    if (_hasError) {
+      return _buildErrorScreen();
+    }
+
+    // Calculate percentages safely
+    double needsPercentage = income > 0 ? (essentialExpenses / income) * 100 : 0;
+    double wantsPercentage = income > 0 ? (optionalExpenses / income) * 100 : 0;
+    double savingsPercentage = income > 0 ? (savings / income) * 100 : 0;
 
     // Check if the user is following the 50-30-20 rule
     bool isFollowingRule = (needsPercentage <= 50) &&
         (wantsPercentage <= 30) &&
         (savingsPercentage >= 20);
 
-    if (isLoading) {
-      return _buildLoadingScreen();
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Summary',style: TextStyle(color: Colors.white),),
-        leading: IconButton(onPressed: ()=> Navigator.pop(context),
-       icon: Icon(Icons.arrow_back, color:Colors.white)),
-        backgroundColor: Color(0xFF0F2027),
+        title: const Text('Financial Summary', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF0F2027),
         elevation: 10,
         centerTitle: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(0),
+            bottom: Radius.circular(0)),
+          ),
         ),
-      ),
-      ),
-        body: RefreshIndicator(
+      
+      body: RefreshIndicator(
         onRefresh: _fetchFinancialData,
         color: Colors.blue,
         backgroundColor: Colors.white,
@@ -223,22 +252,46 @@ class _SummaryPageState extends State<SummaryPage> {
               const SizedBox(height: 20),
               _buildFinancialOverviewCard(),
               const SizedBox(height: 20),
-              _buildRuleBreakdownCard(),
-              if (selectedGoal == 'Marriage') _buildMarriagePlanningCard(),
-              if (!isFollowingRule) _buildRecommendationsCard(),
+              _buildRuleBreakdownCard(needsPercentage, wantsPercentage, savingsPercentage),
+              if (goalsSelected.contains('Marriage')) _buildMarriagePlanningCard(),
+              if (!isFollowingRule) _buildRecommendationsCard(needsPercentage, wantsPercentage),
               if (goalsSelected.isNotEmpty) _buildGoalsCard(),
               const SizedBox(height: 30),
             ],
           ),
         ),
-      
       ),
+      );
     
-    );
-  
   }
 
   Widget _buildLoadingScreen() {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Financial Summary'),
+        backgroundColor: const Color(0xFF0A0E2D),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A5A98)),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Updating your financial summary...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen() {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Financial Summary'),
@@ -248,15 +301,19 @@ class _SummaryPageState extends State<SummaryPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3A5A98)),
-            ),
+            const Icon(Icons.error_outline, color: Colors.red, size: 50),
             const SizedBox(height: 20),
             Text(
-              'Updating your financial summary...',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.grey[700],
-              ),
+              _errorMessage,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _fetchFinancialData,
+              child: const Text('Retry'),
             ),
           ],
         ),
@@ -265,8 +322,7 @@ class _SummaryPageState extends State<SummaryPage> {
   }
 
   Widget _buildStatusCard(bool isFollowingRule) {
-  return Center( // Centering the card
-    child: Card(
+    return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
@@ -275,7 +331,6 @@ class _SummaryPageState extends State<SummaryPage> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Ensures proper spacing
           children: [
             Icon(
               isFollowingRule ? Icons.check_circle : Icons.warning,
@@ -287,31 +342,25 @@ class _SummaryPageState extends State<SummaryPage> {
               isFollowingRule 
                   ? 'Great! You are following the 50-30-20 rule!' 
                   : 'You are NOT following the 50-30-20 rule',
-              textAlign: TextAlign.center, // Center align text
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isFollowingRule ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
-              ),
+                color: isFollowingRule ? const Color(0xFF2E7D32) : const Color(0xFFC62828)),
             ),
             if (isFollowingRule) ...[
               const SizedBox(height: 10),
               const Text(
                 '🎉 Keep up the good financial habits!',
-                textAlign: TextAlign.center, // Ensuring text is centered
                 style: TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF2E7D32),
-                ),
+                  color: Color(0xFF2E7D32)),
               ),
             ],
           ],
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildFinancialOverviewCard() {
     return Card(
@@ -363,8 +412,8 @@ class _SummaryPageState extends State<SummaryPage> {
     );
   }
 
-  Widget _buildFinancialRowWithIcon(IconData icon, String label, double amount, Color color) {
-    double percentage = (amount / income) * 100;
+  Widget _buildFinancialRowWithIcon(IconData icon, String label, int amount, Color color) {
+    double percentage = income > 0 ? (amount / income) * 100 : 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -378,7 +427,7 @@ class _SummaryPageState extends State<SummaryPage> {
             ),
           ),
           Text(
-            '₹${amount.toStringAsFixed(2)}',
+            '₹$amount',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold),
@@ -403,11 +452,7 @@ class _SummaryPageState extends State<SummaryPage> {
     );
   }
 
-  Widget _buildRuleBreakdownCard() {
-    double needsPercentage = (essentialExpenses / income) * 100;
-    double wantsPercentage = (optionalExpenses / income) * 100;
-    double savingsPercentage = (savings / income) * 100;
-
+  Widget _buildRuleBreakdownCard(double needsPercentage, double wantsPercentage, double savingsPercentage) {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
@@ -553,10 +598,7 @@ class _SummaryPageState extends State<SummaryPage> {
     );
   }
 
-  Widget _buildRecommendationsCard() {
-    double needsPercentage = (essentialExpenses / income) * 100;
-    double wantsPercentage = (optionalExpenses / income) * 100;
-
+  Widget _buildRecommendationsCard(double needsPercentage, double wantsPercentage) {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
@@ -600,7 +642,7 @@ class _SummaryPageState extends State<SummaryPage> {
                       const Icon(Icons.chevron_right, size: 16),
                       const SizedBox(width: 5),
                       Text(
-                        'Reduce ${entry.key} by 10-15% (Current: ₹${entry.value.toStringAsFixed(2)})',
+                        'Reduce ${entry.key} by 10-15% (Current: ₹${entry.value})',
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -625,7 +667,7 @@ class _SummaryPageState extends State<SummaryPage> {
                       const Icon(Icons.chevron_right, size: 16),
                       const SizedBox(width: 5),
                       Text(
-                        'Limit ${entry.key} spending (Current: ₹${entry.value.toStringAsFixed(2)})',
+                        'Limit ${entry.key} spending (Current: ₹${entry.value})',
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -769,5 +811,10 @@ class _SummaryPageState extends State<SummaryPage> {
       MaterialPageRoute(builder: (context) => page),
     );
     _fetchFinancialData();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

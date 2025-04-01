@@ -188,53 +188,53 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildFinancialOverview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: 8),
-          child: Text(
-            'Financial Overview',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: EdgeInsets.only(left: 8),
+        child: Text(
+          'Financial Overview',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                title: 'Income',
-                value: '₹${financialData['totalIncome']?.toStringAsFixed(2) ?? '0.00'}',
-                icon: Icons.arrow_upward,
-                color: Color(0xFF4CAF50),
-              ),
+      ),
+      SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: _buildStatCard(
+              title: 'Income',
+              value: '₹${(financialData['totalIncome']?.toInt() ?? 0)}',
+              icon: Icons.arrow_upward,
+              color: Color(0xFF4CAF50),
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                title: 'Savings',
-                value: '₹${financialData['savings']?.toStringAsFixed(2) ?? '0.00'}',
-                icon: Icons.savings,
-                color: Color(0xFF2196F3),
-              ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: _buildStatCard(
+              title: 'Savings',
+              value: '₹${(financialData['savings']?.toInt() ?? 0)}',
+              icon: Icons.savings,
+              color: Color(0xFF2196F3),
             ),
-          ],
-        ),
-        SizedBox(height: 12),
-        _buildStatCard(
-          title: 'Savings Rate',
-          value: '${((financialData['savings'] ?? 0) / (financialData['totalIncome'] ?? 1) * 100).toStringAsFixed(1)}%',
-          icon: Icons.trending_up,
-          color: Color(0xFF9C27B0),
-          fullWidth: true,
-        ),
-      ],
-    );
-  }
+          ),
+        ],
+      ),
+      SizedBox(height: 12),
+      _buildStatCard(
+        title: 'Savings Rate',
+        value: '${((financialData['savings'] ?? 0) / (financialData['totalIncome'] ?? 1) * 100).toInt()}%',
+        icon: Icons.trending_up,
+        color: Color(0xFF9C27B0),
+        fullWidth: true,
+      ),
+    ],
+  );
+}
 
   Widget _buildStatCard({
     required String title,
@@ -294,13 +294,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildExpenseSection() {
-    double totalExpenses = (financialData['totalEssentialExpenses'] ?? 0) + 
-                          (financialData['totalOptionalExpenses'] ?? 0);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+Widget _buildExpenseSection() {
+  int totalExpenses = ((financialData['totalEssentialExpenses'] ?? 0) + 
+                      (financialData['totalOptionalExpenses'] ?? 0)).toInt();
+  
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
         Padding(
           padding: EdgeInsets.only(left: 8),
           child: Text(
@@ -328,19 +328,19 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           child: Column(
             children: [
-              _buildExpenseCategory(
-                label: 'Essential',
-                amount: financialData['totalEssentialExpenses']?.toDouble() ?? 0,
-                total: totalExpenses,
-                color: Color(0xFF1A2980),
-              ),
-              SizedBox(height: 12),
-              _buildExpenseCategory(
-                label: 'Optional',
-                amount: financialData['totalOptionalExpenses']?.toDouble() ?? 0,
-                total: totalExpenses,
-                color: Color(0xFF26D0CE),
-              ),
+               _buildExpenseCategory(
+        label: 'Essential',
+        amount: (financialData['totalEssentialExpenses'] ?? 0).toInt(),
+        total: totalExpenses,
+        color: Color(0xFF1A2980),
+      ),
+      SizedBox(height: 12),
+      _buildExpenseCategory(
+        label: 'Optional',
+        amount: (financialData['totalOptionalExpenses'] ?? 0).toInt(),
+        total: totalExpenses,
+        color: Color(0xFF26D0CE),
+      ),
               SizedBox(height: 16),
               Wrap(
                 spacing: 8,
@@ -381,103 +381,109 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildExpenseCategory({
-    required String label,
-    required double amount,
-    required double total,
-    required Color color,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            Text(
-              '₹${amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 6),
-        LinearProgressIndicator(
-          value: total > 0 ? amount / total : 0,
-          minHeight: 6,
-          backgroundColor: Colors.grey[200],
-          color: color,
-        ),
-        SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${total > 0 ? (amount / total * 100).toStringAsFixed(1) : '0'}% of expenses',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-            Text(
-              '${total > 0 ? (amount / (financialData['totalIncome'] ?? 1) * 100).toStringAsFixed(1) : '0'}% of income',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExpenseTag({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  required String label,
+  required int amount,
+  required int total,
+  required Color color,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 16, color: Color(0xFF1A2980)),
-          SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
           ),
-          SizedBox(width: 4),
           Text(
-            value,
+            '₹$amount',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2980),
+              color: color,
             ),
           ),
         ],
       ),
-    );
-  }
+      SizedBox(height: 6),
+      LinearProgressIndicator(
+        value: total > 0 ? amount / total : 0,
+        minHeight: 6,
+        backgroundColor: Colors.grey[200],
+        color: color,
+      ),
+      SizedBox(height: 4),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '${total > 0 ? ((amount / total * 100).toInt()) : 0}% of expenses',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          Text(
+            '${total > 0 ? ((amount / (financialData['totalIncome'] ?? 1) * 100).toInt()) : 0}% of income',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+
+ Widget _buildExpenseTag({
+  required IconData icon,
+  required String label,
+  required String value,
+}) {
+  // Extract the numeric value and convert to int
+  String numericValue = value.replaceAll(RegExp(r'[^0-9.]'), '');
+  double? doubleValue = double.tryParse(numericValue);
+  String intValue = doubleValue != null ? doubleValue.toInt().toString() : '0';
+  
+  return Container(
+    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.grey[100],
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: Colors.grey[300]!),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: Color(0xFF1A2980)),
+        SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(width: 4),
+        Text(
+          '₹$intValue',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A2980),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildPersonalInfoSection() {
     return Column(

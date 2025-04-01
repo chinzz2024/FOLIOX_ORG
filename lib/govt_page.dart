@@ -361,24 +361,29 @@ double _calculateCategoryTotal(Map<String, dynamic> category) {
   });
 }
 
+// ... (keep all the existing code above the build method the same)
+
 @override
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
       title: const Text('Details', style: TextStyle(color: Colors.white)),
-      leading : IconButton(onPressed: ()=> Navigator.pop(context), icon: Icon(Icons.arrow_back,color:Colors.white)),
+      leading: IconButton(
+        onPressed: () => Navigator.pop(context), 
+        icon: Icon(Icons.arrow_back, color: Colors.white)
+      ),
       backgroundColor: const Color.fromARGB(255, 12, 6, 37),
     ),
     body: Stack(
       children: [
         // Background Image with Opacity
         Opacity(
-          opacity: 0.3, // Adjust opacity here (0.0 - fully transparent, 1.0 - fully visible)
+          opacity: 0.3,
           child: Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/bgop.jpeg"), // Ensure this image exists
-                fit: BoxFit.cover, // Covers the entire screen
+                image: AssetImage("assets/bgop.jpeg"),
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -419,68 +424,113 @@ Widget build(BuildContext context) {
                 _buildTextField('Employee Provident Fund', employeeProvidentFundController),
                 _buildTextField('Public Provident Fund', publicProvidentFundController),
               ]),
-const SizedBox(height: 24.0),
-Center(
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Push buttons to edges
-    children: [
-      Padding(
-        padding: const EdgeInsets.only(left: 32.0), // Move more to left
-        child: Container(
-          width: 150, // Set button width
-          height: 50,  // Set button height
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 71, 136, 189), // Blue background
-            borderRadius: BorderRadius.circular(8.0), // Slight rounded corners
-          ),
-          child: TextButton.icon(
-            onPressed: _saveToFirestore,
-            icon: const Icon(Icons.build, color: Colors.white),
-            label: const Text(
-              'Update',
-              style: TextStyle(color: Colors.white),
-            ),
+              const SizedBox(height: 24.0),
+              _buildActionButtons(),
+              const SizedBox(height: 24.0), // Extra space at bottom
+            ],
           ),
         ),
-      ),
-      Padding(
-        padding: const EdgeInsets.only(right: 32.0), // Move more to right
-        child: Container(
-          width: 150, // Set button width
-          height: 50,  // Set button height
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 71, 136, 189), // Blue background
-            borderRadius: BorderRadius.circular(8.0), // Slight rounded corners
-          ),
-          child: TextButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SummaryPage(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.edit, color: Colors.white),
-            label: const Text(
-              'Plan',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-
-
-          ],
-        ),
-      ),
-    ])
-    
+      ],
+    ),
   );
-  }
+}
+
+Widget _buildActionButtons() {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final isSmallScreen = constraints.maxWidth < 400;
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: isSmallScreen
+            ? Column(
+                children: [
+                  _buildActionButton(
+                    context: context,
+                    icon: Icons.build,
+                    label: 'Update',
+                    onPressed: _saveToFirestore,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildActionButton(
+                    context: context,
+                    icon: Icons.edit,
+                    label: 'Plan',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SummaryPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Flexible(
+                    child: _buildActionButton(
+                      context: context,
+                      icon: Icons.build,
+                      label: 'Update',
+                      onPressed: _saveToFirestore,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Flexible(
+                    child: _buildActionButton(
+                      context: context,
+                      icon: Icons.edit,
+                      label: 'Plan',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SummaryPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+      );
+    },
+  );
+}
+
+Widget _buildActionButton({
+  required BuildContext context,
+  required IconData icon,
+  required String label,
+  required VoidCallback onPressed,
+}) {
+  return SizedBox(
+    width: double.infinity, // Take full available width
+    height: 50,
+    child: ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color.fromARGB(255, 71, 136, 189),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+        ),
+      ),
+    ),
+  );
+}
+
+// ... (keep all the existing methods below the same)
 
   Widget _buildGoalsSection() {
     return Column(
