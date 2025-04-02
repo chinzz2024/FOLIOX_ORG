@@ -55,10 +55,10 @@ def fetch_historical_data(symboltoken, fromdate, todate):
             'X-PrivateKey': 'VJ5iztNm',                # Replace with your actual API Key
             'Accept': 'application/json',
             'X-SourceID': 'WEB',
-            'X-ClientLocalIP': '127.0.0.1',           # Replace with actual IP
-            'X-ClientPublicIP': '106.193.147.98',     # Replace with actual IP
-            'X-MACAddress': '74:12:b3:c5:f6:76',      # Replace with actual MAC address
-            'X-UserType': 'USER',
+            'X-ClientLocalIP': '0.0.0.0',           # Replace with actual IP
+            # 'X-ClientPublicIP': '106.193.147.98',     # Replace with actual IP
+            # 'X-MACAddress': '74:12:b3:c5:f6:76',      # Replace with actual MAC address
+            # 'X-UserType': 'USER',
             'Content-Type': 'application/json'
         }
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
