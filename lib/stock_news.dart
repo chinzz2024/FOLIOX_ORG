@@ -62,7 +62,7 @@ Future<void> _initializePurchasedStocks() async {
 }
 
   Future<void> fetchStockNews() async {
-    const url = 'http://127.0.0.1:5000/stock-news';
+    const url = 'https://foliox-backend.onrender.com/stock-news';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
