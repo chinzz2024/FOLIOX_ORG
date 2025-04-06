@@ -13,16 +13,16 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _currentUser;
   
-  // Dynamic fields from database
-  double _estimatedBudget = 0;
+  // Dynamic fields from database (now using int for monetary values)
+  int _estimatedBudget = 0;
   int _targetYear = 0;
-  double _allocatedAmount = 0;
+  int _allocatedAmount = 0;
   
-  // Budget fields
-  double _savings = 0;
-  double _totalIncome = 0;
-  double _totalEssentialExpenses = 0;
-  double _totalOptionalExpenses = 0;
+  // Budget fields (now using int)
+  int _savings = 0;
+  int _totalIncome = 0;
+  int _totalEssentialExpenses = 0;
+  int _totalOptionalExpenses = 0;
   
   // UI State
   bool _isLoading = true;
@@ -51,14 +51,37 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
 
       if (budgetDoc.exists) {
         setState(() {
-          _savings = budgetDoc['savings']?.toDouble() ?? 0;
-          _totalIncome = budgetDoc['totalIncome']?.toDouble() ?? 0;
-          _totalEssentialExpenses = budgetDoc['totalEssentialExpenses']?.toDouble() ?? 0;
-          _totalOptionalExpenses = budgetDoc['totalOptionalExpenses']?.toDouble() ?? 0;
+          _savings = (budgetDoc['savings']?.toDouble() ?? 0).round();
+          _totalIncome = (budgetDoc['totalIncome']?.toDouble() ?? 0).round();
+          _totalEssentialExpenses = (budgetDoc['totalEssentialExpenses']?.toDouble() ?? 0).round();
+          _totalOptionalExpenses = (budgetDoc['totalOptionalExpenses']?.toDouble() ?? 0).round();
         });
       }
 
-      // Load marriage goal data
+      // First try to load from the goalsSelected array in main document
+      final mainDoc = await _firestore
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid)
+          .get();
+
+      if (mainDoc.exists) {
+        final goalsList = mainDoc['goalsSelected'] as List<dynamic>? ?? [];
+        final marriageGoal = goalsList.firstWhere(
+          (goal) => goal['goal'] == 'Marriage',
+          orElse: () => null,
+        );
+
+        if (marriageGoal != null) {
+          setState(() {
+            _estimatedBudget = (marriageGoal['estimatedBudget']?.toDouble() ?? 0).round();
+            _targetYear = marriageGoal['targetYear']?.toInt() ?? 0;
+            _budgetController.text = _estimatedBudget.toString();
+            _yearController.text = _targetYear.toString();
+          });
+        }
+      }
+
+      // Then try to load from investments subcollection (legacy)
       final querySnapshot = await _firestore
           .collection('financialPlanner')
           .doc(_currentUser!.uid)
@@ -71,13 +94,16 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
         final doc = querySnapshot.docs.first;
         setState(() {
           _documentId = doc.id;
-          _estimatedBudget = doc['estimatedBudget']?.toDouble() ?? 0;
-          _targetYear = doc['targetYear']?.toInt() ?? 0;
-          _allocatedAmount = doc['allocatedAmount']?.toDouble() ?? 0;
-          
-          // Initialize controllers with database values
-          _budgetController.text = _estimatedBudget.toStringAsFixed(2);
-          _yearController.text = _targetYear.toString();
+          _allocatedAmount = (doc['allocatedAmount']?.toDouble() ?? 0).round();
+          // Only update these if not already set from goalsSelected
+          if (_estimatedBudget == 0) {
+            _estimatedBudget = (doc['estimatedBudget']?.toDouble() ?? 0).round();
+            _budgetController.text = _estimatedBudget.toString();
+          }
+          if (_targetYear == 0) {
+            _targetYear = doc['targetYear']?.toInt() ?? 0;
+            _yearController.text = _targetYear.toString();
+          }
         });
       }
     } catch (e) {
@@ -96,34 +122,51 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
       if (_currentUser == null) return;
 
       // Get values from text controllers
-      final newBudget = double.tryParse(_budgetController.text) ?? 0;
+      final newBudget = int.tryParse(_budgetController.text) ?? 0;
       final newYear = int.tryParse(_yearController.text) ?? 0;
 
       if (newBudget <= 0 || newYear <= 0) {
         throw Exception('Please enter valid budget and year values');
       }
 
+      // First update in goalsSelected array
+      final mainDocRef = _firestore
+          .collection('financialPlanner')
+          .doc(_currentUser!.uid);
+
+      final mainDoc = await mainDocRef.get();
+      final goalsList = mainDoc['goalsSelected'] as List<dynamic>? ?? [];
+
+      // Find and update existing marriage goal or add new one
+      int marriageIndex = goalsList.indexWhere((g) => g['goal'] == 'Marriage');
       final marriageData = {
-        'estimatedBudget': newBudget,
         'goal': 'Marriage',
+        'estimatedBudget': newBudget,
         'targetYear': newYear,
-        'allocatedAmount': _allocatedAmount,
-        'lastUpdated': FieldValue.serverTimestamp(),
       };
 
-      if (_documentId == null) {
-        await _firestore
-            .collection('financialPlanner')
-            .doc(_currentUser!.uid)
-            .collection('investments')
-            .add(marriageData);
+      if (marriageIndex >= 0) {
+        goalsList[marriageIndex] = marriageData;
       } else {
+        goalsList.add(marriageData);
+      }
+
+      await mainDocRef.update({
+        'goalsSelected': goalsList,
+      });
+
+      // Also update in investments subcollection if it exists
+      if (_documentId != null) {
         await _firestore
             .collection('financialPlanner')
             .doc(_currentUser!.uid)
             .collection('investments')
             .doc(_documentId)
-            .update(marriageData);
+            .update({
+              'estimatedBudget': newBudget,
+              'targetYear': newYear,
+              'lastUpdated': FieldValue.serverTimestamp(),
+            });
       }
 
       // Update local state
@@ -143,7 +186,7 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
   }
 
   Future<void> _allocateFunds() async {
-    final amount = double.tryParse(_depositController.text) ?? 0;
+    final amount = int.tryParse(_depositController.text) ?? 0;
     if (amount <= 0 || amount > _savings) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid amount within your savings')),
@@ -160,15 +203,33 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
             'savings': _savings - amount,
           });
 
-      // Update marriage goal
-      await _firestore
-          .collection('financialPlanner')
-          .doc(_currentUser!.uid)
-          .collection('investments')
-          .doc(_documentId)
-          .update({
-            'allocatedAmount': _allocatedAmount + amount,
-          });
+      // Update marriage goal in investments subcollection
+      final marriageData = {
+        'allocatedAmount': _allocatedAmount + amount,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      if (_documentId == null) {
+        // Create new document if doesn't exist
+        final docRef = await _firestore
+            .collection('financialPlanner')
+            .doc(_currentUser!.uid)
+            .collection('investments')
+            .add({
+              ...marriageData,
+              'goal': 'Marriage',
+              'estimatedBudget': _estimatedBudget,
+              'targetYear': _targetYear,
+            });
+        _documentId = docRef.id;
+      } else {
+        await _firestore
+            .collection('financialPlanner')
+            .doc(_currentUser!.uid)
+            .collection('investments')
+            .doc(_documentId)
+            .update(marriageData);
+      }
 
       setState(() {
         _allocatedAmount += amount;
@@ -186,30 +247,28 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
     }
   }
 
-  double _calculateFutureValue() {
+  int _calculateFutureValue() {
     const double inflationRate = 0.07; // 7% inflation
-    return _estimatedBudget * pow(1 + inflationRate, _targetYear);
+    return (_estimatedBudget * pow(1 + inflationRate, _targetYear)).round();
   }
 
   @override
   Widget build(BuildContext context) {
     final futureValue = _calculateFutureValue();
     final availableSavings = _savings;
+    final fundedPercentage = _estimatedBudget > 0 
+        ? (_allocatedAmount / _estimatedBudget * 100).round()
+        : 0;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Marriage Goal Planner',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
-                fontSize: 22,)),
-        leading: IconButton(onPressed: ()=>Navigator.pop(context), icon: Icon(Icons.arrow_back,color: Colors.white,)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveGoalData,
-          
-          ),
-        ],
-         backgroundColor: Color(0xFF0F2027),
-         centerTitle: true,
+        title: const Text('Marriage Goal Planner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context), 
+          icon: Icon(Icons.arrow_back, color: Colors.white)
+        ),
+        backgroundColor: Color(0xFF0F2027),
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -236,16 +295,16 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              _buildDetailRow('Total Income', '₹${_totalIncome.toStringAsFixed(2)}'),
-                              _buildDetailRow('Essential Expenses', '₹${_totalEssentialExpenses.toStringAsFixed(2)}'),
-                              _buildDetailRow('Optional Expenses', '₹${_totalOptionalExpenses.toStringAsFixed(2)}'),
+                              _buildDetailRow('Total Income', '₹$_totalIncome'),
+                              _buildDetailRow('Essential Expenses', '₹$_totalEssentialExpenses'),
+                              _buildDetailRow('Optional Expenses', '₹$_totalOptionalExpenses'),
                               const Divider(),
                               _buildDetailRow(
                                 'Available Savings',
-                                '₹${availableSavings.toStringAsFixed(2)}',
+                                '₹$availableSavings',
                                 isHighlighted: true,
                               ),
-                              _buildDetailRow('Allocated to Marriage', '₹${_allocatedAmount.toStringAsFixed(2)}'),
+                              _buildDetailRow('Allocated to Marriage', '₹$_allocatedAmount'),
                             ],
                           ),
                         ),
@@ -287,6 +346,14 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
                                 ),
                                 keyboardType: TextInputType.number,
                               ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _saveGoalData,
+                                  child: const Text('Save Goal'),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -325,7 +392,7 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
                               const SizedBox(height: 10),
                               if (availableSavings > 0)
                                 Text(
-                                  'Available: ₹${availableSavings.toStringAsFixed(2)}',
+                                  'Available: ₹$availableSavings',
                                   style: const TextStyle(color: Colors.grey),
                                 ),
                             ],
@@ -352,11 +419,11 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
                               const SizedBox(height: 10),
                               _buildDetailRow(
                                 'Current Target',
-                                '₹${_estimatedBudget.toStringAsFixed(2)}',
+                                '₹$_estimatedBudget',
                               ),
                               _buildDetailRow(
                                 'Future Value',
-                                '₹${futureValue.toStringAsFixed(2)}',
+                                '₹$futureValue',
                                 isHighlighted: true,
                               ),
                               _buildDetailRow(
@@ -365,14 +432,16 @@ class _MarriageGoalPageState extends State<MarriageGoalPage> {
                               ),
                               const SizedBox(height: 10),
                               LinearProgressIndicator(
-                                value: (_allocatedAmount / _estimatedBudget).clamp(0.0, 1.0),
+                                value: _estimatedBudget > 0 
+                                    ? (_allocatedAmount / _estimatedBudget).clamp(0.0, 1.0)
+                                    : 0,
                                 minHeight: 10,
                                 backgroundColor: Colors.grey[200],
                                 color: Theme.of(context).primaryColor,
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                'Funded: ${(_allocatedAmount / _estimatedBudget * 100).toStringAsFixed(1)}%',
+                                'Funded: $fundedPercentage%',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 14),
                               ),

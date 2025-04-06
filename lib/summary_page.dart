@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'dart:math';
 import 'dreamcar.dart';
 import 'retire.dart';
@@ -32,7 +31,6 @@ class _SummaryPageState extends State<SummaryPage> {
   String? selectedGoal;
   int marriageBudget = 0;
   bool _hasError = false;
-
   int marriageYears = 0;
   String inflationResult = '';
   String sipSuggestion = '';
@@ -90,14 +88,14 @@ class _SummaryPageState extends State<SummaryPage> {
       final parsedSavings = _parseInt(data['savings']);
       
       final parsedEssentialMap = (data['essentialExpenses'] is Map<String, dynamic> 
-    ? (data['essentialExpenses'] as Map<String, dynamic>).map<String, int>(
-        (k, v) => MapEntry(k, _parseInt(v)))
-    : <String, int>{});
+          ? (data['essentialExpenses'] as Map<String, dynamic>).map<String, int>(
+              (k, v) => MapEntry(k, _parseInt(v)))
+          : <String, int>{});
 
-final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
-    ? (data['optionalExpenses'] as Map<String, dynamic>).map<String, int>(
-        (k, v) => MapEntry(k, _parseInt(v)))
-    : <String, int>{});
+      final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
+          ? (data['optionalExpenses'] as Map<String, dynamic>).map<String, int>(
+              (k, v) => MapEntry(k, _parseInt(v)))
+          : <String, int>{});
 
       final parsedGoals = _parseGoals(data['goalsSelected'] ?? []);
       
@@ -172,34 +170,34 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
   }
 
   void _calculateMarriageDetails() {
-  if (marriageBudget > 0 && marriageYears > 0) {
-    // Calculate inflated amount (7% annual inflation)
-    int inflatedAmount = (marriageBudget * pow(1.07, marriageYears)).round();
-    
-    // Calculate SIP future value (12% annual return, monthly compounding)
-    int sipFutureValue = (10000 * ((pow(1.01, marriageYears * 12) - 1) / 0.01 * 1.01).round());
-    
-    // Calculate FD future value (7% annual return)
-    int fdFutureValue = (savings * pow(1.07, marriageYears)).round();
+    if (marriageBudget > 0 && marriageYears > 0) {
+      // Calculate inflated amount (7% annual inflation)
+      int inflatedAmount = (marriageBudget * pow(1.07, marriageYears)).round();
+      
+      // Calculate SIP future value (12% annual return, monthly compounding)
+      int sipFutureValue = (10000 * ((pow(1.01, marriageYears * 12) - 1) / 0.01 * 1.01).round());
+      
+      // Calculate FD future value (7% annual return)
+      int fdFutureValue = (savings * pow(1.07, marriageYears)).round();
 
-    setState(() {
-      inflationResult =
-          "You would need ₹$inflatedAmount for your marriage in $marriageYears years.";
+      setState(() {
+        inflationResult =
+            "You would need ₹$inflatedAmount for your marriage in $marriageYears years.";
 
-      sipSuggestion =
-          "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹$sipFutureValue in $marriageYears years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
+        sipSuggestion =
+            "Investing ₹10,000 per month in SIP at 12% annual return would give you ₹$sipFutureValue in $marriageYears years.\n\nRecommended SIPs:\n1️⃣ SBI Bluechip Fund\n2️⃣ ICICI Prudential Growth Fund";
 
-      fdSuggestion =
-          "Placing your current savings of ₹$savings in an FD at 7% annual return would grow to ₹$fdFutureValue in $marriageYears years.";
-    });
-  } else {
-    setState(() {
-      inflationResult = '';
-      sipSuggestion = '';
-      fdSuggestion = '';
-    });
+        fdSuggestion =
+            "Placing your current savings of ₹$savings in an FD at 7% annual return would grow to ₹$fdFutureValue in $marriageYears years.";
+      });
+    } else {
+      setState(() {
+        inflationResult = '';
+        sipSuggestion = '';
+        fdSuggestion = '';
+      });
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -211,10 +209,15 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
       return _buildErrorScreen();
     }
 
-    // Calculate percentages safely
+    // Calculate percentages safely (clamp between 0-100)
     double needsPercentage = income > 0 ? (essentialExpenses / income) * 100 : 0;
     double wantsPercentage = income > 0 ? (optionalExpenses / income) * 100 : 0;
     double savingsPercentage = income > 0 ? (savings / income) * 100 : 0;
+
+    // Ensure percentages are within bounds
+    needsPercentage = needsPercentage.clamp(0, 100);
+    wantsPercentage = wantsPercentage.clamp(0, 100);
+    savingsPercentage = savingsPercentage.clamp(0, 100);
 
     // Check if the user is following the 50-30-20 rule
     bool isFollowingRule = (needsPercentage <= 50) &&
@@ -223,8 +226,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Summary', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
-                fontSize: 22,)),
+        title: const Text('Financial Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -233,11 +235,9 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
         elevation: 10,
         centerTitle: true,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(0)),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(0)),
         ),
-      
+      ),
       body: RefreshIndicator(
         onRefresh: _fetchFinancialData,
         color: Colors.blue,
@@ -254,7 +254,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
               _buildFinancialOverviewCard(),
               const SizedBox(height: 20),
               _buildRuleBreakdownCard(needsPercentage, wantsPercentage, savingsPercentage),
-              if (goalsSelected.contains('Marriage')) _buildMarriagePlanningCard(),
+              
               if (!isFollowingRule) _buildRecommendationsCard(needsPercentage, wantsPercentage),
               if (goalsSelected.isNotEmpty) _buildGoalsCard(),
               const SizedBox(height: 30),
@@ -262,8 +262,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
           ),
         ),
       ),
-      );
-    
+    );
   }
 
   Widget _buildLoadingScreen() {
@@ -282,9 +281,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
             SizedBox(height: 20),
             Text(
               'Updating your financial summary...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
@@ -306,9 +303,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
             const SizedBox(height: 20),
             Text(
               _errorMessage,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.red),
+              style: const TextStyle(fontSize: 16, color: Colors.red),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -325,9 +320,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
   Widget _buildStatusCard(bool isFollowingRule) {
     return Card(
       elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: isFollowingRule ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -352,9 +345,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
               const SizedBox(height: 10),
               const Text(
                 '🎉 Keep up the good financial habits!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF2E7D32)),
+                style: TextStyle(fontSize: 16, color: Color(0xFF2E7D32)),
               ),
             ],
           ],
@@ -366,9 +357,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
   Widget _buildFinancialOverviewCard() {
     return Card(
       elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -383,30 +372,10 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
             ),
             const Divider(thickness: 1),
             const SizedBox(height: 10),
-            _buildFinancialRowWithIcon(
-              Icons.attach_money, 
-              'Income', 
-              income,
-              Colors.green
-            ),
-            _buildFinancialRowWithIcon(
-              Icons.home, 
-              'Essential Expenses', 
-              essentialExpenses,
-              Colors.blue
-            ),
-            _buildFinancialRowWithIcon(
-              Icons.shopping_cart, 
-              'Optional Expenses', 
-              optionalExpenses,
-              Colors.orange
-            ),
-            _buildFinancialRowWithIcon(
-              Icons.savings, 
-              'Savings', 
-              savings,
-              Colors.purple
-            ),
+            _buildFinancialRowWithIcon(Icons.attach_money, 'Income', income, Colors.green),
+            _buildFinancialRowWithIcon(Icons.home, 'Essential Expenses', essentialExpenses, Colors.blue),
+            _buildFinancialRowWithIcon(Icons.shopping_cart, 'Optional Expenses', optionalExpenses, Colors.orange),
+            _buildFinancialRowWithIcon(Icons.savings, 'Savings', savings, Colors.purple),
           ],
         ),
       ),
@@ -414,7 +383,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
   }
 
   Widget _buildFinancialRowWithIcon(IconData icon, String label, int amount, Color color) {
-    double percentage = income > 0 ? (amount / income) * 100 : 0;
+    double percentage = income > 0 ? (amount / income * 100).clamp(0, 100) : 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -422,16 +391,11 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
           Icon(icon, color: color, size: 28),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 16),
-            ),
+            child: Text(label, style: const TextStyle(fontSize: 16)),
           ),
           Text(
             '₹$amount',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 10),
           Container(
@@ -456,9 +420,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
   Widget _buildRuleBreakdownCard(double needsPercentage, double wantsPercentage, double savingsPercentage) {
     return Card(
       elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -492,10 +454,7 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(label, style: const TextStyle(fontSize: 16)),
               Text(
                 '${userPercentage.toStringAsFixed(1)}%',
                 style: TextStyle(
@@ -515,15 +474,20 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
-              FractionallySizedBox(
-                widthFactor: userPercentage / 100,
-                child: Container(
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  double widthFactor = (userPercentage / 100).clamp(0.0, 1.0);
+                  return FractionallySizedBox(
+                    widthFactor: widthFactor,
+                    child: Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  );
+                },
               ),
               Positioned(
                 left: '${rulePercentage}%'.length * 5.0,
@@ -539,65 +503,15 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
           if (isOver)
             Text(
               '${(userPercentage - rulePercentage).toStringAsFixed(1)}% over recommended',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.red),
+              style: const TextStyle(fontSize: 12, color: Colors.red),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildMarriagePlanningCard() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      margin: const EdgeInsets.only(top: 20),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.favorite, color: Colors.red),
-                const SizedBox(width: 10),
-                const Text(
-                  'Marriage Planning',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0A0E2D)),
-                ),
-              ],
-            ),
-            const Divider(thickness: 1),
-            const SizedBox(height: 10),
-            if (inflationResult.isNotEmpty)
-              _buildInfoTile(
-                Icons.trending_up,
-                'Future Cost',
-                inflationResult,
-                Colors.red),
-            if (sipSuggestion.isNotEmpty)
-              _buildInfoTile(
-                Icons.bar_chart,
-                'SIP Investment',
-                sipSuggestion,
-                Colors.green),
-            if (fdSuggestion.isNotEmpty)
-              _buildInfoTile(
-                Icons.account_balance,
-                'Fixed Deposit',
-                fdSuggestion,
-                Colors.blue),
-          ],
-        ),
-      ),
-    );
-  }
+  
+
 
   Widget _buildRecommendationsCard(double needsPercentage, double wantsPercentage) {
     return Card(
@@ -627,31 +541,37 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
             ),
             const Divider(thickness: 1),
             const SizedBox(height: 10),
-            if (needsPercentage > 50) ...[
-              const Text(
-                'Essential Expenses Reduction:',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red),
-              ),
-              ...essentialExpensesMap.entries.map((entry) => 
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.chevron_right, size: 16),
-                      const SizedBox(width: 5),
-                      Text(
-                        'Reduce ${entry.key} by 10-15% (Current: ₹${entry.value})',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+         if (needsPercentage > 50) ...[
+  const Text(
+    'Essential Expenses Reduction:',
+    style: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+      color: Colors.red,
+    ),
+  ),
+  const SizedBox(height: 8),
+  ...essentialExpensesMap.entries.map((entry) => 
+    Container(
+      width: MediaQuery.of(context).size.width * 0.9, // Takes 90% of screen width
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          const Icon(Icons.chevron_right, size: 16),
+          const SizedBox(width: 8),
+          Expanded( // Makes text take available space and wrap if needed
+            child: Text(
+              'Reduce ${entry.key} by 10-15% (Current: ₹${entry.value})',
+              style: const TextStyle(fontSize: 14),
+              softWrap: true, // Allows text to wrap
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+  const SizedBox(height: 12),
+],
             if (wantsPercentage > 30) ...[
               const Text(
                 'Optional Expenses Reduction:',
