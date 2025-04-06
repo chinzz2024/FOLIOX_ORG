@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'home_page.dart';
 
 class StockNewsPage extends StatefulWidget {
@@ -14,7 +13,7 @@ class StockNewsPage extends StatefulWidget {
   State<StockNewsPage> createState() => _StockNewsPageState();
 }
 
-class _StockNewsPageState extends State<StockNewsPage>
+class _StockNewsPageState extends State<StockNewsPage> 
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<dynamic> stockNews = [];
@@ -22,284 +21,262 @@ class _StockNewsPageState extends State<StockNewsPage>
   List<String> purchasedStocks = [];
   bool isLoading = true;
   String errorMessage = '';
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final int _newsPerPage = 20;
+  bool _isLoadingMore = false;
+  DateTime? _lastRefreshTime;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _initializePurchasedStocks();
-    fetchStockNews();
+    _fetchInitialNews();
   }
 
-Future<void> _initializePurchasedStocks() async {
-  try {
-    final User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // Fetch user's investments document from Firestore
-      final DocumentSnapshot userInvestments = await FirebaseFirestore.instance
-          .collection('user_investments')
-          .doc(user.uid)
-          .get();
-
-      if (userInvestments.exists) {
-        // Get all the field names (which are stock names) from the document
-        final data = userInvestments.data() as Map<String, dynamic>;
-        setState(() {
-          purchasedStocks = data.keys.toList(); // This gets all the stock names
-        });
-
-        // Log the purchased stocks
-        debugPrint('Purchased Stocks: $purchasedStocks');
-      } else {
-        debugPrint('No investments found for this user');
-      }
-    } else {
-      debugPrint('User not logged in');
-    }
-  } catch (e) {
-    debugPrint('Error fetching purchased stocks: $e');
-  }
-}
-
-  Future<void> fetchStockNews() async {
-    const url = 'https://foliox-backend.onrender.com/stock-news';
+  Future<void> _initializePurchasedStocks() async {
     try {
-      final response = await http.get(Uri.parse(url));
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('user_investments')
+            .doc(user.uid)
+            .get();
+
+        if (snapshot.exists) {
+          setState(() {
+            purchasedStocks = (snapshot.data() as Map<String, dynamic>).keys.toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching purchased stocks: $e');
+    }
+  }
+
+  Future<void> _fetchInitialNews() async {
+    if (_lastRefreshTime != null && 
+        DateTime.now().difference(_lastRefreshTime!) < Duration(minutes: 1)) {
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      _currentPage = 1;
+      stockNews.clear();
+      myStockNews.clear();
+    });
+
+    try {
+      final response = await http.get(Uri.parse(
+        'https://foliox-backend.onrender.com/stock-news?page=$_currentPage&per_page=$_newsPerPage'
+      ));
+
       if (response.statusCode == 200) {
+        final data = json.decode(response.body);
         setState(() {
-          stockNews = json.decode(response.body);
+          stockNews = data['news'];
+          _hasMore = data['has_more'];
           isLoading = false;
-          _moveMatchingNewsToMyStockNews();
+          _lastRefreshTime = DateTime.now();
+          _filterMyStockNews();
         });
       } else {
-        setState(() {
-          errorMessage = 'Failed to load stock news. Please try again later.';
-          isLoading = false;
-        });
+        throw Exception('Failed to load news');
       }
     } catch (e) {
       setState(() {
-        errorMessage = 'An error occurred: $e';
+        errorMessage = 'Failed to load news: $e';
         isLoading = false;
       });
     }
   }
 
-  void _moveMatchingNewsToMyStockNews() {
-    List<dynamic> matchingNews = [];
-    for (var news in stockNews) {
-      for (var stock in purchasedStocks) {
-        if (news['title'] != null && news['title'].toString().contains(stock)) {
-          matchingNews.add(news);
-        }
-      }
-    }
+  Future<void> _loadMoreNews() async {
+    if (_isLoadingMore || !_hasMore) return;
+
     setState(() {
-      myStockNews.addAll(matchingNews);
+      _isLoadingMore = true;
+      _currentPage++;
     });
+
+    try {
+      final response = await http.get(Uri.parse(
+        'https://foliox-backend.onrender.com/stock-news?page=$_currentPage&per_page=$_newsPerPage'
+      ));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          stockNews.addAll(data['news']);
+          _hasMore = data['has_more'];
+          _isLoadingMore = false;
+          _filterMyStockNews();
+        });
+      } else {
+        throw Exception('Failed to load more news');
+      }
+    } catch (e) {
+      setState(() {
+        _currentPage--;
+        _isLoadingMore = false;
+      });
+    }
   }
+
+ void _filterMyStockNews() {
+  if (purchasedStocks.isEmpty) return;
+  
+  final lowerCaseStocks = purchasedStocks.map((s) => s.toLowerCase()).toList();
+  
+  setState(() {
+    myStockNews = stockNews.where((news) {
+      final title = news['title']?.toString().toLowerCase() ?? '';
+      return lowerCaseStocks.any((s) => title.contains(s));  // Changed 'stock' to 's'
+    }).toList();
+  });
+}
 
   Future<void> _openUrl(String url) async {
-    final Uri uri = Uri.parse(url);
-    launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (await canLaunch(url)) {
+      await launch(url, forceSafariVC: false, forceWebView: false);
+    }
   }
 
-  Widget _buildNewsCard(dynamic news, {bool isMyStock = false}) {
+  Widget _buildNewsItem(dynamic news) {
     return Card(
-      elevation: 5,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.blue.shade50,  // Light blue background for all cards
-              Colors.white
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(12),
-          title: Text(
-            news['title'] ?? 'No Title',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              fontSize: 16,
-            ),
-          ),
-          subtitle: Column(
+      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: InkWell(
+        onTap: () => _openUrl(news['link'] ?? ''),
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
+              Text(
+                news['title'] ?? 'No Title',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 8),
               Text(
                 news['source'] ?? 'Unknown Source',
                 style: TextStyle(
-                  color: Colors.black54,
+                  color: Colors.grey[600],
                   fontStyle: FontStyle.italic,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
-                      news['link'] ?? 'No Link',
+                      news['link'] ?? '',
                       style: TextStyle(
-                        color: Colors.blue.shade700,
-                        decoration: TextDecoration.underline,
+                        color: Colors.blue[700],
+                        fontSize: 12,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
+                  Icon(Icons.open_in_new, size: 16),
                 ],
               ),
             ],
           ),
-          trailing: Icon(
-            Icons.open_in_new,
-            color: Colors.black,
-          ),
-          onTap: () => _openUrl(news['link'] ?? ''),
         ),
       ),
     );
   }
 
-  @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color.fromARGB(255, 235, 235, 235), Color.fromARGB(255, 47, 146, 179), Color.fromARGB(255, 110, 153, 171)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+  Widget _buildNewsList(List<dynamic> newsList, bool isMainTab) {
+    return RefreshIndicator(
+      onRefresh: _fetchInitialNews,
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        itemCount: newsList.length + ((isMainTab && _hasMore) ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (isMainTab && index == newsList.length) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: _isLoadingMore 
+                  ? CircularProgressIndicator()
+                  : TextButton(
+                      onPressed: _loadMoreNews,
+                      child: Text('Load More'),
+                    ),
+              ),
+            );
+          }
+          return _buildNewsItem(newsList[index]);
+        },
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent, // Makes the scaffold transparent
-        appBar: AppBar(
-          title: const Text(
-            'Stock News',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.article_outlined, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'No news available',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const Homepage()),
-                (route) => false,
-              );
-            },
+          SizedBox(height: 8),
+          TextButton(
+            onPressed: _fetchInitialNews,
+            child: Text('Refresh'),
           ),
-          backgroundColor: Color(0xFF0F2027), // Transparent to blend with gradient
-          elevation: 0,
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.white,
-            tabs: [
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.article),
-                    SizedBox(width: 8),
-                    Text('Stock News'),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.bookmark),
-                    SizedBox(width: 8),
-                    Text('My Stock News'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        body: TabBarView(
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Stock News'),
+        bottom: TabBar(
           controller: _tabController,
-          children: [
-            isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                    ),
-                  )
-                : errorMessage.isNotEmpty
-                    ? Center(
-                        child: Text(
-                          errorMessage,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: fetchStockNews,
-                        child: ListView.builder(
-                          itemCount: stockNews.length,
-                          itemBuilder: (context, index) {
-                            final news = stockNews[index];
-                            return _buildNewsCard(news);
-                          },
-                        ),
-                      ),
-            myStockNews.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.article_outlined,
-                          size: 100,
-                          color: Colors.white,
-                        ),
-                       const SizedBox(height: 20),
-                        Text(
-                          'No Stock News',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: fetchStockNews,
-                    child: ListView.builder(
-                      itemCount: myStockNews.length,
-                      itemBuilder: (context, index) {
-                        final news = myStockNews[index];
-                        return _buildNewsCard(news);
-                      },
-                    ),
-                  ),
+          tabs: [
+            Tab(icon: Icon(Icons.article), text: 'All News'),
+            Tab(icon: Icon(Icons.bookmark), text: 'My Stocks'),
           ],
         ),
       ),
-    ),
-  );
-}
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // All News Tab
+          isLoading 
+            ? Center(child: CircularProgressIndicator())
+            : errorMessage.isNotEmpty
+              ? Center(child: Text(errorMessage))
+              : stockNews.isEmpty
+                ? _buildEmptyState()
+                : _buildNewsList(stockNews, true),
 
+          // My Stocks Tab
+          isLoading
+            ? Center(child: CircularProgressIndicator())
+            : myStockNews.isEmpty
+              ? _buildEmptyState()
+              : _buildNewsList(myStockNews, false),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
