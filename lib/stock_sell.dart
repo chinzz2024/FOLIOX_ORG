@@ -115,6 +115,7 @@ class _StockSellState extends State<StockSell> {
           'My Stocks',
           style: TextStyle(
             fontWeight: FontWeight.bold,
+            fontSize: 22,
             color: Colors.white,
           ),
         ),
@@ -123,6 +124,7 @@ class _StockSellState extends State<StockSell> {
           icon: Icon(Icons.arrow_back, color: Colors.white)
         ),
         backgroundColor: Color(0xFF0F2027),
+        centerTitle: true,
         elevation: 0,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -279,7 +281,7 @@ class _StockSellState extends State<StockSell> {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: const Color.fromARGB(255, 242, 9, 9),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
