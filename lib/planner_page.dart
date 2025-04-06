@@ -70,7 +70,7 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
            
             backgroundColor: Color(0xFF0F2027),
-            elevation: 0,
+           
             centerTitle: true,
           ),
           body: Stack(

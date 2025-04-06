@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'calculation_page.dart';
+
 import 'summary_page.dart';
 
 class IncomePage extends StatefulWidget {
@@ -372,7 +372,7 @@ Widget build(BuildContext context) {
         onPressed: () => Navigator.pop(context), 
         icon: Icon(Icons.arrow_back, color: Colors.white)
       ),
-      backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+       backgroundColor: Color(0xFF0F2027),
     ),
     body: Stack(
       children: [
