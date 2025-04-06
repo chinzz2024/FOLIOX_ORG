@@ -103,7 +103,8 @@ Recommendation:
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Emergency Fund Planner', style: TextStyle(color: Colors.white)),
+        title: const Text('Emergency Fund Planner', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
+                fontSize: 22,)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -111,6 +112,7 @@ Recommendation:
           },
         ),
         backgroundColor: Color(0xFF0F2027),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

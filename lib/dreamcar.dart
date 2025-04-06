@@ -414,9 +414,11 @@ Savings Plan:
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dream Car Calculator', 
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Dream Car ', 
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,
+                fontSize: 22,)),
         backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        centerTitle: true,
         leading: IconButton(
   icon: const Icon(Icons.arrow_back, color: Colors.white),
   onPressed: () {

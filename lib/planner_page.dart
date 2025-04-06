@@ -56,7 +56,7 @@ class _PlannerPageState extends State<PlannerPage> {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFFF2F6FC),
-      child: SafeArea(
+     
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
@@ -311,7 +311,7 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
           ),
         ),
-      ),
+      
     );
   }
 }

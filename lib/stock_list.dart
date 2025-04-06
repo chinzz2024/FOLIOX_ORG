@@ -30,7 +30,8 @@ class StockListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stocks', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Stocks', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
+                fontSize: 22)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -41,7 +42,8 @@ class StockListPage extends StatelessWidget {
             );
           },
         ),
-        backgroundColor: const Color.fromARGB(255, 12, 6, 37),
+        backgroundColor: Color(0xFF0F2027),
+        centerTitle: true,
       ),
       body: Container(
         color: const Color(0xFFF2F6FC), // Light blue-gray background

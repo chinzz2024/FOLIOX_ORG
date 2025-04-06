@@ -46,8 +46,7 @@ class _IncomePageState extends State<IncomePage> {
       TextEditingController();
   final TextEditingController savingsAccountController =
       TextEditingController();
-  final TextEditingController currentAccountController =
-      TextEditingController();
+
   final TextEditingController employeeProvidentFundController =
       TextEditingController();
   final TextEditingController publicProvidentFundController =
@@ -91,7 +90,7 @@ class _IncomePageState extends State<IncomePage> {
     fixedDepositsController.dispose();
     recurringDepositsController.dispose();
     savingsAccountController.dispose();
-    currentAccountController.dispose();
+   
     employeeProvidentFundController.dispose();
     publicProvidentFundController.dispose();
 
@@ -278,9 +277,7 @@ Future<void> _saveToFirestore() async {
       'Savings Account': num.tryParse(savingsAccountController.text) ??
           existingData['assets']?['Savings Account'] ??
           0,
-      'Current Account': num.tryParse(currentAccountController.text) ??
-          existingData['assets']?['Current Account'] ??
-          0,
+      
       'Employee Provident Fund': num.tryParse(employeeProvidentFundController.text) ??
           existingData['assets']?['Employee Provident Fund'] ??
           0,
@@ -367,12 +364,14 @@ double _calculateCategoryTotal(Map<String, dynamic> category) {
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
-      title: const Text('Details', style: TextStyle(color: Colors.white)),
+      title: const Text('Details', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
+                fontSize: 22)),
       leading: IconButton(
         onPressed: () => Navigator.pop(context), 
         icon: Icon(Icons.arrow_back, color: Colors.white)
       ),
        backgroundColor: Color(0xFF0F2027),
+       centerTitle: true,
     ),
     body: Stack(
       children: [
@@ -420,7 +419,7 @@ Widget build(BuildContext context) {
                 _buildTextField('Fixed Deposits', fixedDepositsController),
                 _buildTextField('Recurring Deposits', recurringDepositsController),
                 _buildTextField('Savings Account', savingsAccountController),
-                _buildTextField('Current Account', currentAccountController),
+                
                 _buildTextField('Employee Provident Fund', employeeProvidentFundController),
                 _buildTextField('Public Provident Fund', publicProvidentFundController),
               ]),

@@ -286,12 +286,14 @@ Future<void> _saveInvestment() async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Retirement Planning', style: TextStyle(color: Colors.white)),
+        title: const Text('Retirement Planning', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
+                fontSize: 22,)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
        backgroundColor: Color(0xFF0F2027),
+       centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -223,7 +223,8 @@ final parsedOptionalMap = (data['optionalExpenses'] is Map<String, dynamic>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Summary', style: TextStyle(color: Colors.white)),
+        title: const Text('Financial Summary', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
+                fontSize: 22,)),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back, color: Colors.white),

@@ -51,7 +51,7 @@ class _HomepageState extends State<Homepage> {
           ],
         ),
       ),
-      child: SafeArea(
+     
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
@@ -228,7 +228,7 @@ class _HomepageState extends State<Homepage> {
             ),
           ),
         ),
-      ),
+      
     );
   }
 

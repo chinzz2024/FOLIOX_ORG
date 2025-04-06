@@ -75,7 +75,7 @@ class _ProfilePageState extends State<ProfilePage> {
             stops: [0.1, 0.9],
           ),
         ),
-        child: SafeArea(
+        
           child: Column(
             children: [
               // App Bar
@@ -114,7 +114,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ],
           ),
-        ),
+        
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
@@ -123,7 +123,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildAppBar() {
     return AppBar(
       elevation: 0,
-      backgroundColor: Colors.transparent,
+      
       title: Text(
         'My Profile',
         style: TextStyle(
@@ -132,6 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
           fontSize: 22,
         ),
       ),
+      backgroundColor: Color(0xFF0F2027),
       centerTitle: true,
       actions: [
         IconButton(
@@ -139,6 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
           onPressed: () => _showEditProfileDialog(context),
         ),
       ],
+      
     );
   }
 
@@ -598,7 +600,7 @@ Widget _buildExpenseSection() {
       currentIndex: _currentIndex,
       onTap: _onBottomNavTapped,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: Color(0xFF1A2980),
+      selectedItemColor: const Color(0xFF003BFF),
       unselectedItemColor: Colors.grey[600],
       selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
       items: const [
