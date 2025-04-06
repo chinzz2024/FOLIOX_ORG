@@ -101,13 +101,7 @@ Future<void> _initializePurchasedStocks() async {
 
   Future<void> _openUrl(String url) async {
     final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the link')),
-      );
-    }
+    launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Widget _buildNewsCard(dynamic news, {bool isMyStock = false}) {
