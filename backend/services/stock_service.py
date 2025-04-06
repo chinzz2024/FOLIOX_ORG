@@ -1,64 +1,110 @@
-import requests
+import aiohttp
+import asyncio
 from bs4 import BeautifulSoup
+from flask_caching import Cache
+import json
+from datetime import datetime
 
-def fetch_stock_news():
-    session = requests.Session()
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 1800})
 
-    # Define the login URL and base URL for stock news pages
-    login_url = "https://m.moneycontrol.com/login.php?cpurl=https://www.moneycontrol.com/"
-    base_url = "https://www.moneycontrol.com/news/business/stocks/"
-    
-    # Set your login credentials
-    login_payload = {
-        'user_id': 'joleoran@gmail.com',  # Replace with your actual email ID
-        'password': 'iXQDIX@pZ4'  # Replace with your actual password
-    }
+class NewsScraper:
+    def __init__(self):
+        self.login_url = "https://www.moneycontrol.com/mc/login"
+        self.base_url = "https://www.moneycontrol.com/news/business/stocks/"
+        self.session = None
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        }
 
-    # Send a POST request to the login page
-    login_response = session.post(login_url, data=login_payload)
-
-    if login_response.status_code != 200:
-        return {'error': 'Login failed'}
-
-    stock_news = []
-    pages_to_scrape = 9  # Number of pages to scrape (page-1 to page-9)
-
-    for page_num in range(1, pages_to_scrape + 1):
-        if page_num == 1:
-            scrape_url = base_url
-        else:
-            scrape_url = f"{base_url}page-{page_num}/"
+    async def _login(self):
+        self.session = aiohttp.ClientSession(headers=self.headers)
+        login_data = {
+            'email': 'joleoran@gmail.com',
+            'pwd': 'iXQDIX@pZ4',
+            'remember': 'on',
+            'redirect': 'https://www.moneycontrol.com/'
+        }
         
         try:
-            # Send a GET request to scrape the page
-            scrape_response = session.get(scrape_url)
-            
-            if scrape_response.status_code == 200:
-                soup = BeautifulSoup(scrape_response.text, 'html.parser')
-                articles = soup.find_all('li', class_='clearfix')
-                
-                for article in articles:
-                    title_tag = article.find('h2')
-                    if title_tag:
-                        title = title_tag.get_text(strip=True)
-                        link = title_tag.find('a')['href']
-                        
-                        # Extract source from the article (if available)
-                        source_tag = article.find('span', class_='author')
-                        source = source_tag.get_text(strip=True) if source_tag else "MoneyControl"
-                        
-                        # Only add if not already in the list (to avoid duplicates)
-                        if not any(news['title'] == title for news in stock_news):
-                            stock_news.append({
-                                'title': title, 
-                                'link': link,
-                                'source': source
-                            })
-            else:
-                print(f"Failed to retrieve page {page_num}")
-                
+            async with self.session.post(
+                self.login_url,
+                data=login_data,
+                allow_redirects=True,
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                if response.status == 200:
+                    # Check if login was successful by accessing a protected page
+                    test_response = await self.session.get(
+                        'https://www.moneycontrol.com/portfolio-management/',
+                        allow_redirects=False
+                    )
+                    if test_response.status == 200:
+                        return True
         except Exception as e:
-            print(f"Error scraping page {page_num}: {str(e)}")
-            continue
+            print(f"Login error: {str(e)}")
+        return False
 
-    return stock_news[:200]  # Return maximum 100 news items to avoid too much data
+    async def _scrape_page(self, url):
+        try:
+            async with self.session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=15),
+                headers=self.headers
+            ) as response:
+                if response.status == 200:
+                    return await response.text()
+                print(f"Failed to fetch page: {response.status}")
+        except Exception as e:
+            print(f"Scraping error: {str(e)}")
+        return None
+
+    async def get_news(self):
+        cached = cache.get('cached_news')
+        if cached:
+            print("Returning cached news")
+            return cached
+
+        if not await self._login():
+            print("Login failed")
+            return []
+
+        news_items = []
+        
+        # Only scrape first page to be faster
+        url = self.base_url
+        print(f"Scraping: {url}")
+        html = await self._scrape_page(url)
+        if not html:
+            await self.session.close()
+            return []
+                
+        soup = BeautifulSoup(html, 'html.parser')
+        articles = soup.find_all('li', class_='clearfix')[:15]  # Limit to 15 articles
+        
+        for article in articles:
+            title_tag = article.find('h2')
+            if not title_tag:
+                continue
+                
+            title = title_tag.get_text(strip=True)
+            link = title_tag.find('a')['href'] if title_tag.find('a') else None
+            source_tag = article.find('span', class_='author')
+            source = source_tag.get_text(strip=True) if source_tag else "MoneyControl"
+            
+            if link and not any(n['title'] == title for n in news_items):
+                news_items.append({
+                    'title': title,
+                    'link': link,
+                    'source': source,
+                    'time': datetime.now().isoformat()
+                })
+
+        await self.session.close()
+        
+        if news_items:
+            cache.set('cached_news', news_items)
+            print(f"Scraped {len(news_items)} news items")
+        
+        return news_items
