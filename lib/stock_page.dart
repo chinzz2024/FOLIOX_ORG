@@ -26,58 +26,37 @@ class _StockDataPageState extends State<StockDataPage> {
   double? _lastPrice;
 
  Future<void> fetchHistoricalData() async {
-  final String fromDate = '2000-01-01 00:00';
-  final String toDate = '2025-03-26 12:00';
+  final String fromDate = '2025-03-01 09:15'; // Reduced date range
+  final String toDate = '2025-03-26 15:30';
 
-  // Change to your Render backend URL
-  final url = Uri.parse('https://foliox-backend.onrender.com/fetch_historical_data');
-  
   try {
     final response = await http.post(
-      url,
+      Uri.parse('https://your-render-url.onrender.com/fetch_historical_data'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'symboltoken': widget.symbolToken,
         'fromdate': fromDate,
         'todate': toDate,
       }),
-    );
+    ).timeout(Duration(seconds: 30));
 
+    final responseData = json.decode(response.body);
+    
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['status'] == true) {
-        setState(() {
-          _response = 'Data fetched successfully';
-          if (data['data'] != null && data['data']['data'] != null) {
-            _candlestickData = List<CandlestickData>.from(
-              data['data']['data'].map((item) => CandlestickData(
-                DateTime.parse(item[0]),
-                item[1].toDouble(),
-                item[2].toDouble(),
-                item[3].toDouble(),
-                item[4].toDouble(),
-                item[5].toDouble(),
-              )),
-            );
-            if (_candlestickData.isNotEmpty) {
-              _lastPrice = _candlestickData.last.close;
-            }
-          }
-        });
+      if (responseData['status'] == true) {
+        // Process data
       } else {
         setState(() {
-          _response = 'Error: ${data['message'] ?? 'Unknown error'}';
+          _response = 'Broker API Error: ${responseData['message']}';
         });
       }
     } else {
       setState(() {
-        _response = 'Error: ${response.statusCode} - ${response.body}';
+        _response = 'Server Error (${response.statusCode}): ${responseData['message'] ?? 'No details'}';
       });
     }
   } catch (e) {
-    setState(() {
-      _response = 'Network error: $e';
-    });
+    setState(() => _response = 'Unexpected error: $e');
   }
 }
   void _addInvestmentToPortfolio(String shares, double amount) async {

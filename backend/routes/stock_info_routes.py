@@ -5,19 +5,36 @@ stock_info_bp = Blueprint('stock_info', __name__)
 
 @stock_info_bp.route('/fetch_historical_data', methods=['POST'])
 def fetch_historical_data_route():
-    """API route to fetch historical stock data."""
     try:
-        symboltoken = request.json.get('symboltoken')
-        fromdate = request.json.get('fromdate')
-        todate = request.json.get('todate')
+        required_fields = ['symboltoken', 'fromdate', 'todate']
+        if not all(field in request.json for field in required_fields):
+            return jsonify({
+                "status": False,
+                "message": "Missing required fields",
+                "required_fields": required_fields
+            }), 400
 
-        if not symboltoken or not fromdate or not todate:
-            return jsonify({"status": False, "message": "Missing fields"}), 400
-
-        data = fetch_historical_data(symboltoken, fromdate, todate)
-        if data:
-            return jsonify({"status": True, "data": data}), 200
-        else:
-            return jsonify({"status": False, "message": "Failed to fetch data"}), 500
+        data = fetch_historical_data(
+            request.json['symboltoken'],
+            request.json['fromdate'],
+            request.json['todate']
+        )
+        
+        if not data:
+            return jsonify({
+                "status": False,
+                "message": "No data received from broker API"
+            }), 502
+            
+        return jsonify({
+            "status": True,
+            "data": data
+        }), 200
+        
     except Exception as e:
-        return jsonify({"status": False, "message": str(e)}), 500
+        logger.error(f"Route error: {str(e)}")
+        return jsonify({
+            "status": False,
+            "message": str(e),
+            "error_type": type(e).__name__
+        }), 500
