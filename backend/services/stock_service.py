@@ -1,11 +1,9 @@
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
-from flask_caching import Cache
 import json
 from datetime import datetime
-
-cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 1800})
+from app import cache
 
 class NewsScraper:
     def __init__(self):
