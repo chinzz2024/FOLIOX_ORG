@@ -1,5 +1,9 @@
 from flask import Blueprint, request, jsonify
+import logging
 from services.stock_info_service import fetch_historical_data
+
+# Create logger
+logger = logging.getLogger(__name__)
 
 stock_info_bp = Blueprint('stock_info', __name__)
 
@@ -18,6 +22,9 @@ def fetch_historical_data_route():
                 "required": list(required)
             }), 400
 
+        # Log the request data for debugging
+        logger.info(f"Request data: {data}")
+        
         result = fetch_historical_data(
             str(data['symboltoken']),  # Ensure string type
             data['fromdate'],
@@ -30,13 +37,14 @@ def fetch_historical_data_route():
         }), 200
 
     except ValueError as e:
+        logger.error(f"Validation error: {str(e)}")
         return jsonify({
             "status": False,
             "message": f"Validation error: {str(e)}",
             "type": "VALIDATION"
         }), 400
     except Exception as e:
-        logger.exception("API Error")
+        logger.exception(f"API Error: {str(e)}")
         return jsonify({
             "status": False,
             "message": str(e),

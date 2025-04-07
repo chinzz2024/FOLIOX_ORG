@@ -29,69 +29,66 @@ def login_and_get_token():
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         raise Exception("Authentication failed")
-def fetch_historical_data(symboltoken, fromdate, todate):
+ def fetch_historical_data(symboltoken, fromdate, todate):
+    conn = None
     try:
-        # Validate inputs first
-        if not isinstance(symboltoken, str) or not symboltoken.isdigit():
-            raise ValueError("Symbol token must be a numeric string")
-            
-        # Convert dates to Angel One's expected format
+        # Get a fresh token for each request
+        authToken = login_and_get_token()
+        
+        # Format dates properly - Angel One might expect a specific format
+        # Try ISO format with T separator instead of space
         def format_date(dt_str):
             try:
                 dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-                return dt.strftime("%Y-%m-%d %H:%M")
+                return dt.strftime("%Y-%m-%dT%H:%M:00")  # ISO format with seconds
             except ValueError:
                 raise ValueError(f"Invalid date format: {dt_str}. Use 'YYYY-MM-DD HH:MM'")
-
+        
         formatted_from = format_date(fromdate)
         formatted_to = format_date(todate)
-
-        authToken = login_and_get_token()
-        conn = http.client.HTTPSConnection("apiconnect.angelone.in", timeout=10)
         
+        # Create connection with timeout
+        conn = http.client.HTTPSConnection("apiconnect.angelone.in", timeout=15)
+        
+        # Update payload with properly formatted data
         payload = json.dumps({
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "ONE_MINUTE",  # Try different intervals if needed
+            "interval": "ONE_MINUTE",
             "fromdate": formatted_from,
             "todate": formatted_to
         })
         
+        # Make sure Authorization header is correctly formatted
         headers = {
-            'Authorization': authToken,
+            'Authorization': authToken,  # No space before token
             'X-PrivateKey': api_key,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-SourceID': 'WEB',  # Include all required headers
+            'X-UserType': 'USER'
         }
-
+        
+        print(f"Request payload: {payload}")
+        print(f"Request headers: {headers}")
+        
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
         res = conn.getresponse()
         response_data = res.read().decode('utf-8')
-
+        
+        print(f"Response status: {res.status}")
+        print(f"Response data: {response_data}")
+        
         if res.status != 200:
-            logger.error(f"API Error {res.status}: {response_data}")
-            raise Exception(f"API returned {res.status}")
-
-        try:
-            data = json.loads(response_data)
-            if not data.get('data'):
-                logger.error(f"Empty data in response: {data}")
-                raise Exception("No data found in response")
-                
-            # Validate candle data format
-            candles = data['data'].get('data', [])
-            if candles and len(candles[0]) != 6:
-                raise ValueError("Unexpected candle data format")
-                
-            return data
+            print(f"API Error {res.status}: {response_data}")
+            raise Exception(f"API returned {res.status}: {response_data}")
             
-        except json.JSONDecodeError:
-            logger.error(f"Invalid JSON: {response_data}")
-            raise Exception("Invalid API response format")
+        data = json.loads(response_data)
+        return data
             
     except Exception as e:
-        logger.error(f"Error in fetch_historical_data: {str(e)}", exc_info=True)
+        print(f"Error in fetch_historical_data: {str(e)}")
         raise
     finally:
-        if 'conn' in locals():
+        if conn:
             conn.close()

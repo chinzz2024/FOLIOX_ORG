@@ -26,11 +26,16 @@ class _StockDataPageState extends State<StockDataPage> {
   double? _lastPrice;
 
 Future<void> fetchHistoricalData() async {
-  // Use proper ISO format dates
-  final fromDate = '2025-03-26 09:15'; 
-  final toDate = '2025-03-26 15:30';
+  setState(() {
+    _response = 'Fetching data...';
+  });
+
+  // Use reasonable date range
+  final fromDate = '2025-04-07 09:15'; 
+  final toDate = '2025-04-07 15:30';
 
   try {
+    print("Sending request to fetch historical data");
     final response = await http.post(
       Uri.parse('https://foliox-backend.onrender.com/fetch_historical_data'),
       headers: {'Content-Type': 'application/json'},
@@ -41,24 +46,38 @@ Future<void> fetchHistoricalData() async {
       }),
     );
 
+    print("Response status: ${response.statusCode}");
+    print("Response body: ${response.body}");
+
     final responseData = json.decode(response.body);
     
     if (response.statusCode == 200 && responseData['status']) {
-      final candles = responseData['data']['data'];
+      final candles = responseData['data']['data']['data']; // Note the nested data structure
+      
+      if (candles == null || candles.isEmpty) {
+        setState(() {
+          _response = 'No data found for the selected time range';
+        });
+        return;
+      }
       
       setState(() {
+        _response = 'Data fetched successfully';
         _candlestickData = candles.map<CandlestickData>((item) {
-          // Add defensive parsing with error handling
-          return CandlestickData(
-            // Parse date string safely
-            DateTime.parse(item[0].toString()),
-            // Ensure numeric values are properly converted
-            double.parse(item[1].toString()),
-            double.parse(item[2].toString()),
-            double.parse(item[3].toString()),
-            double.parse(item[4].toString()),
-            double.parse(item[5].toString()),
-          );
+          // Add type checking and parsing safeguards
+          try {
+            return CandlestickData(
+              DateTime.parse(item[0].toString()),
+              double.parse(item[1].toString()),
+              double.parse(item[2].toString()),
+              double.parse(item[3].toString()),
+              double.parse(item[4].toString()),
+              double.parse(item[5].toString()),
+            );
+          } catch (e) {
+            print("Error parsing candle data: $e");
+            throw FormatException('Invalid candle format');
+          }
         }).toList();
         
         _lastPrice = _candlestickData.isNotEmpty 
@@ -71,6 +90,7 @@ Future<void> fetchHistoricalData() async {
       });
     }
   } catch (e) {
+    print("Error fetching data: $e");
     setState(() => _response = 'Error: ${e.toString()}');
   }
 }
