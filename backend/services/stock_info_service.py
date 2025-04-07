@@ -29,58 +29,68 @@ def login_and_get_token():
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         raise Exception("Authentication failed")
-
 def fetch_historical_data(symboltoken, fromdate, todate):
     try:
-        authToken = login_and_get_token()
-        if not authToken:
-            raise Exception("Failed to obtain authentication token")
+        # Validate inputs first
+        if not isinstance(symboltoken, str) or not symboltoken.isdigit():
+            raise ValueError("Symbol token must be a numeric string")
+            
+        # Convert dates to Angel One's expected format
+        def format_date(dt_str):
+            try:
+                dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+                return dt.strftime("%Y-%m-%d %H:%M")
+            except ValueError:
+                raise ValueError(f"Invalid date format: {dt_str}. Use 'YYYY-MM-DD HH:MM'")
 
+        formatted_from = format_date(fromdate)
+        formatted_to = format_date(todate)
+
+        authToken = login_and_get_token()
         conn = http.client.HTTPSConnection("apiconnect.angelone.in", timeout=10)
         
         payload = json.dumps({
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "ONE_DAY",  # Changed from FIFTEEN_MINUTE for testing
-            "fromdate": fromdate,
-            "todate": todate
+            "interval": "ONE_MINUTE",  # Try different intervals if needed
+            "fromdate": formatted_from,
+            "todate": formatted_to
         })
         
         headers = {
             'Authorization': authToken,
             'X-PrivateKey': api_key,
-            'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'X-SourceID': 'WEB',
-            'X-UserType': 'USER'
+            'Accept': 'application/json'
         }
-        
+
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
-        
         res = conn.getresponse()
-        response_data = res.read().decode()
-        
+        response_data = res.read().decode('utf-8')
+
         if res.status != 200:
-            logger.error(f"API returned {res.status}: {response_data}")
-            raise Exception(f"API Error {res.status}: {response_data}")
+            logger.error(f"API Error {res.status}: {response_data}")
+            raise Exception(f"API returned {res.status}")
+
+        try:
+            data = json.loads(response_data)
+            if not data.get('data'):
+                logger.error(f"Empty data in response: {data}")
+                raise Exception("No data found in response")
+                
+            # Validate candle data format
+            candles = data['data'].get('data', [])
+            if candles and len(candles[0]) != 6:
+                raise ValueError("Unexpected candle data format")
+                
+            return data
             
-        data = json.loads(response_data)
-        
-        # Validate response structure
-        if not data.get('data'):
-            logger.error(f"Unexpected response format: {data}")
-            raise Exception("Invalid data format received from API")
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON: {response_data}")
+            raise Exception("Invalid API response format")
             
-        return data
-        
-    except http.client.HTTPException as e:
-        logger.error(f"HTTP Exception: {str(e)}")
-        raise Exception("Network error occurred")
-    except json.JSONDecodeError:
-        logger.error("Failed to decode API response")
-        raise Exception("Invalid API response")
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Error in fetch_historical_data: {str(e)}", exc_info=True)
         raise
     finally:
-        conn.close()  # Ensure connection is always closed
+        conn.close()

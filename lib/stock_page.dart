@@ -24,39 +24,57 @@ class _StockDataPageState extends State<StockDataPage> {
   String _response = '';
   List<CandlestickData> _candlestickData = [];
   double? _lastPrice;
-
- Future<void> fetchHistoricalData() async {
-  final String fromDate = '2025-03-01 09:15'; // Reduced date range
-  final String toDate = '2025-03-26 15:30';
+Future<void> fetchHistoricalData() async {
+  // Use proper ISO format dates
+  final fromDate = '2025-03-26 09:15'; 
+  final toDate = '2025-03-26 15:30';
 
   try {
     final response = await http.post(
-      Uri.parse('https://your-render-url.onrender.com/fetch_historical_data'),
+      Uri.parse('http://localhost:5000/fetch_historical_data'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'symboltoken': widget.symbolToken,
         'fromdate': fromDate,
         'todate': toDate,
       }),
-    ).timeout(Duration(seconds: 30));
+    );
 
     final responseData = json.decode(response.body);
     
-    if (response.statusCode == 200) {
-      if (responseData['status'] == true) {
-        // Process data
-      } else {
-        setState(() {
-          _response = 'Broker API Error: ${responseData['message']}';
-        });
-      }
+    if (response.statusCode == 200 && responseData['status']) {
+      final candles = responseData['data']['data'];
+      
+      setState(() {
+        _candlestickData = candles.map<CandlestickData>((item) {
+          // Add type checking and parsing safeguards
+          try {
+            return CandlestickData(
+              DateTime.parse(item[0].toString()),
+              double.parse(item[1].toString()),
+              double.parse(item[2].toString()),
+              double.parse(item[3].toString()),
+              double.parse(item[4].toString()),
+              double.parse(item[5].toString()),
+            );
+          } catch (e) {
+            throw FormatException('Invalid candle format at index ${candles.indexOf(item)}');
+          }
+        }).toList();
+        
+        _lastPrice = _candlestickData.isNotEmpty 
+            ? _candlestickData.last.close
+            : null;
+      });
     } else {
       setState(() {
-        _response = 'Server Error (${response.statusCode}): ${responseData['message'] ?? 'No details'}';
+        _response = responseData['message'] ?? 'Unknown error';
       });
     }
+  } on FormatException catch (e) {
+    setState(() => _response = 'Data format error: ${e.message}');
   } catch (e) {
-    setState(() => _response = 'Unexpected error: $e');
+    setState(() => _response = 'Error: ${e.toString()}');
   }
 }
   void _addInvestmentToPortfolio(String shares, double amount) async {
