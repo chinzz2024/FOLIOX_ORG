@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Replace these with your actual credentials
 api_key = "VJ5iztNm"
 username = "AAAF841327"
-pwd = "2504"
+pwd = "204"
 totp_token = "VKEN7FGDBEOFPJDNUYMU5GQ3DY"
 
 def generate_totp(secret):
