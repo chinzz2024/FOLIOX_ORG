@@ -4,201 +4,228 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from extensions import cache
 from config import Config
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('news_scraper')
 
 class NewsScraper:
-    def __init__(self):
+    def __init__(self, min_news_items=50):
         self.session = None
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         }
+        self.base_url = "https://www.moneycontrol.com/news/business/stocks/page-{}/"  # Updated to include page placeholder
+        self.start_page = 2  # Start from page 2
+        self.end_page = 9    # Go up to page 9
+        self.min_news_items = min_news_items
 
-    async def _login(self):
-        try:
+    async def _create_session(self):
+        """Create an aiohttp session if one doesn't exist"""
+        if not self.session:
             self.session = aiohttp.ClientSession(headers=self.headers)
-            
-            # First, get the login page to extract any CSRF tokens if needed
-            async with self.session.get(Config.MC_LOGIN_URL) as pre_response:
-                pre_html = await pre_response.text()
-                soup = BeautifulSoup(pre_html, 'html.parser')
-                
-                # Look for possible CSRF token (adjust selector based on actual page structure)
-                csrf_token = soup.select_one('input[name="csrf_token"]')
-                csrf_value = csrf_token['value'] if csrf_token else None
-            
-            # Prepare login data with CSRF token if found
-            login_data = {
-                'email': Config.MC_EMAIL,
-                'pwd': Config.MC_PASSWORD,
-                'remember': 'on',
-                'redirect': 'https://www.moneycontrol.com/'
-            }
-            
-            if csrf_value:
-                login_data['csrf_token'] = csrf_value
-            
-            # Perform login
-            async with self.session.post(
-                Config.MC_LOGIN_URL,
-                data=login_data,
-                allow_redirects=True,
-                timeout=aiohttp.ClientTimeout(total=15)
+        return self.session
+
+    async def fetch_page(self, page_num):
+        """Fetch and parse a single page of news"""
+        await self._create_session()
+        
+        url = self.base_url.format(page_num)
+        logger.info(f"Fetching page {page_num}: {url}")
+        
+        try:
+            async with self.session.get(
+                url, 
+                timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
-                # Store cookies from the response
-                cookies = response.cookies
+                if response.status != 200:
+                    logger.error(f"Failed to fetch page {page_num}, status: {response.status}")
+                    return []
                 
-                # Check if login was successful by looking for authentication indicators
-                # This could be checking for specific cookies or content in the response
                 html = await response.text()
+                news_items = self._parse_news(html)
+                logger.info(f"Found {len(news_items)} news items on page {page_num}")
                 
-                # Better login verification - look for elements that appear only when logged in
-                # (like username display or logout button)
-                soup = BeautifulSoup(html, 'html.parser')
+                # Add page number metadata to each item
+                for item in news_items:
+                    item['page'] = page_num
+                    
+                return news_items
                 
-                # Check for login indicators (adjust selectors based on actual page)
-                username_element = soup.select_one('.username-display, .user-name, .profile-name')
-                logout_link = soup.select_one('a[href*="logout"], .logout-button')
-                
-                if username_element or logout_link:
-                    print("Login successful - found user elements on page")
-                    return True
-                    
-                # If we couldn't confirm login by HTML elements, try accessing a protected resource
-                test_url = "https://www.moneycontrol.com/portfolio-management/"
-                async with self.session.get(test_url) as test_res:
-                    html = await test_res.text()
-                    soup = BeautifulSoup(html, 'html.parser')
-                    
-                    # Look for elements that would only appear for logged-in users
-                    portfolio_content = soup.select_one('.portfolio-content, .portfolio-summary')
-                    
-                    if portfolio_content:
-                        print("Login confirmed via portfolio page access")
-                        return True
-                        
-                    print("Login verification failed - couldn't access portfolio content")
-                    return False
-                    
         except Exception as e:
-            print(f"Login error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return False
+            logger.error(f"Error fetching page {page_num}: {str(e)}")
+            return []
 
     async def get_news(self):
+        """Get news from pages 2-9"""
+        cache_key = f'mc_stock_news_pages_2_to_9'
+        
         # Check cache first
-        if cached := cache.get('cached_news'):
-            print("Returning cached news")
-            return cached
+        cached_news = cache.get(cache_key)
+        if cached_news and len(cached_news) >= self.min_news_items:
+            logger.info(f"Returning {len(cached_news)} cached news items")
+            return cached_news
         
         try:
-            print("Attempting login to MoneyControl...")
-            if not self.session:
-                self.session = aiohttp.ClientSession(headers=self.headers)
-                
-            login_success = await self._login()
-            if not login_success:
-                print("Login failed, trying to access news without authentication")
-                # Optionally try to access news without login as fallback
-            else:
-                print("Login successful, proceeding to fetch news")
-                
-            print(f"Requesting news from {Config.MC_BASE_URL}")
-            async with self.session.get(
-                Config.MC_BASE_URL,
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as response:
-                print(f"Response status: {response.status}")
-                if response.status == 200:
-                    html = await response.text()
-                    
-                    # Save HTML for debugging if needed
-                    with open("debug_response.html", "w", encoding="utf-8") as f:
-                        f.write(html)
-                        
-                    print("Parsing news content...")
-                    news = self._parse_news(html)
-                    print(f"Found {len(news)} news items")
-                    
-                    if news:
-                        cache.set('cached_news', news, timeout=1800)
-                        return news
-                    else:
-                        print("No news items found in the HTML")
-                        raise Exception("Failed to parse any news items")
-                else:
-                    raise Exception(f"HTTP Error: {response.status}")
-        except Exception as e:
-            print(f"News retrieval error: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise
-        finally:
-            if self.session:
-                await self.session.close()
-
-    def _parse_news(self, html):
-        soup = BeautifulSoup(html, 'html.parser')
-        articles = soup.find_all('li', class_='clearfix')[:15]
-        news_items = []
-        
-        for article in articles:
-            title_tag = article.find('h2')
-            if not title_tag:
-                continue
-                
-            source_tag = article.find('span', class_='author')
-            news_items.append({
-                'title': title_tag.get_text(strip=True),
-                'link': title_tag.find('a')['href'] if title_tag.find('a') else '#',
-                'source': source_tag.get_text(strip=True) if source_tag else "MoneyControl",
-                'time': datetime.now().isoformat()
-            })
-        
-        return news_items
-
-# Add the public news scraping method as fallback
-    async def get_public_news(self):
-        """Fallback method to get news without requiring login"""
-        try:
-            if not self.session:
-                self.session = aiohttp.ClientSession(headers=self.headers)
+            await self._create_session()
             
-            # MoneyControl public news URLs that don't require login
-            public_urls = [
-                "https://www.moneycontrol.com/news/business/stocks/",
-                "https://www.moneycontrol.com/news/business/markets/"
-            ]
+            # Create tasks for each page (2-9)
+            tasks = [self.fetch_page(page) for page in range(self.start_page, self.end_page + 1)]
             
+            # Execute all page fetch tasks concurrently
+            results = await asyncio.gather(*tasks)
+            
+            # Combine all news items
             all_news = []
-            for url in public_urls:
-                try:
-                    async with self.session.get(
-                        url,
-                        timeout=aiohttp.ClientTimeout(total=15)
-                    ) as response:
-                        if response.status == 200:
-                            html = await response.text()
-                            news_items = self._parse_news(html)
-                            all_news.extend(news_items)
-                        else:
-                            print(f"Failed to access {url}: {response.status}")
-                except Exception as e:
-                    print(f"Error accessing {url}: {str(e)}")
-                    continue
+            for page_items in results:
+                if page_items:
+                    all_news.extend(page_items)
             
-            # Deduplicate news items based on title
+            # Remove duplicates based on title
             unique_news = []
             seen_titles = set()
+            
             for item in all_news:
                 if item['title'] not in seen_titles:
                     unique_news.append(item)
                     seen_titles.add(item['title'])
             
+            total_items = len(unique_news)
+            logger.info(f"Successfully retrieved {total_items} unique news items from pages {self.start_page}-{self.end_page}")
+            
+            # Sort by page number and then by position on page
+            unique_news.sort(key=lambda x: (x['page'], x.get('position', 0)))
+            
+            # Cache the results if we found any
             if unique_news:
-                cache.set('cached_news', unique_news, timeout=1800)
+                cache.set(cache_key, unique_news, timeout=1800)  # Cache for 30 minutes
             
             return unique_news
+            
+        except Exception as e:
+            logger.error(f"Error in get_news: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
         finally:
+            # Close the session when done
             if self.session:
                 await self.session.close()
+                self.session = None
+
+    def _parse_news(self, html):
+        """Parse HTML content to extract news items"""
+        soup = BeautifulSoup(html, 'html.parser')
+        news_items = []
+        
+        # Main selector for MoneyControl's stock news pages
+        articles = soup.find_all('li', class_='clearfix')
+        
+        for idx, article in enumerate(articles):
+            item = self._extract_article_data(article)
+            if item:
+                item['position'] = idx  # Track position on page
+                news_items.append(item)
+        
+        return news_items
+
+    def _extract_article_data(self, element):
+        """Extract data from an article element"""
+        try:
+            title_tag = element.find('h2')
+            if not title_tag:
+                title_tag = element.find('h3')
+                if not title_tag:
+                    return None
+            
+            link_tag = title_tag.find('a')
+            if not link_tag:
+                return None
+            
+            title = link_tag.get_text(strip=True)
+            link = link_tag.get('href', '')
+            
+            if not title or not link:
+                return None
+            
+            # Extract timestamp
+            timestamp_tag = element.find('span', class_='meta-date')
+            if not timestamp_tag:
+                timestamp_tag = element.find('span', class_='date')
+            
+            timestamp = timestamp_tag.get_text(strip=True) if timestamp_tag else ""
+            
+            # Extract source/author
+            source_tag = element.find('span', class_='author')
+            source = source_tag.get_text(strip=True) if source_tag else "MoneyControl"
+            
+            # Extract summary
+            summary_tag = element.find('p')
+            summary = summary_tag.get_text(strip=True) if summary_tag else ""
+            
+            # Get image URL
+            img_tag = element.find('img')
+            image_url = img_tag.get('data-src', '') if img_tag else ""
+            if not image_url and img_tag:
+                image_url = img_tag.get('src', '')
+            
+            return {
+                'title': title,
+                'link': link,
+                'timestamp': timestamp,
+                'source': source,
+                'summary': summary,
+                'image_url': image_url,
+                'scraped_at': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error extracting article data: {str(e)}")
+            return None
+
+async def main():
+    scraper = NewsScraper(min_news_items=50)
+    try:
+        news = await scraper.get_news()
+        print(f"\nSuccessfully retrieved {len(news)} news items from pages 2-9")
+        
+        # Print summary by page
+        page_counts = {}
+        for item in news:
+            page = item.get('page', 'unknown')
+            page_counts[page] = page_counts.get(page, 0) + 1
+            
+        print("\nNews items per page:")
+        for page in sorted(page_counts.keys()):
+            print(f"  Page {page}: {page_counts[page]} items")
+        
+        # Print first few items from different pages
+        if news:
+            print("\nSample news items:")
+            samples_shown = 0
+            current_page = None
+            
+            for item in news:
+                if samples_shown >= 10:
+                    break
+                    
+                page = item.get('page', 'unknown')
+                if page != current_page:
+                    print(f"\n=== Page {page} ===")
+                    current_page = page
+                    samples_shown = 0
+                
+                if samples_shown < 3:  # Show 3 items per page
+                    print(f"\nTitle: {item['title']}")
+                    print(f"Link: {item['link']}")
+                    print(f"Time: {item.get('timestamp', 'N/A')}")
+                    samples_shown += 1
+    
+    except Exception as e:
+        print(f"Error running main scraper: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
