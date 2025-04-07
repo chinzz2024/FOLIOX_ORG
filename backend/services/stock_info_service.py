@@ -18,7 +18,7 @@ def generate_totp(secret):
     """Generate a TOTP token using the secret."""
     from pyotp import TOTP
     totp = TOTP(secret)
-    print("HI"totp)
+    print(totp)
     return totp.now()
 
 def login_and_get_token():
