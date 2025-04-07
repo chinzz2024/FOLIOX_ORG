@@ -20,6 +20,8 @@ def generate_totp(secret):
     totp = TOTP(secret)
     print(totp)
     return totp.now()
+
+
 def login_and_get_token():
     """Improved login with token validation"""
     try:
@@ -37,10 +39,13 @@ def login_and_get_token():
                 raise Exception(f"Login failed: {data.get('message', 'Unknown error')}")
 
         token = data['data']['jwtToken']
-        if len(token) < 100:  # Basic token validation
-            raise Exception("Invalid token length received")
+        refresh_token = data['data']['refreshToken']
+        
+        # Basic token validation (less strict)
+        if not token or len(token) < 50:
+            raise Exception("Invalid token received")
             
-        logger.info(f"Login successful (Token: {token[:10]}...)")
+        logger.info(f"Login successful (Token length: {len(token)})")
         return token
         
     except Exception as e:
@@ -52,15 +57,15 @@ def fetch_historical_data(symboltoken, fromdate, todate):
     try:
         authToken = login_and_get_token()
         
-        # Verify token format
-        if not authToken.startswith('eyJ'):  # JWT tokens typically start with eyJ
-            raise Exception("Invalid token format")
+        # Remove strict token format check
+        if not authToken:
+            raise Exception("Empty token received")
             
         conn = http.client.HTTPSConnection("apiconnect.angelone.in")
         payload = json.dumps({
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "ONE_MINUTE",  # More reliable interval
+            "interval": "ONE_MINUTE",
             "fromdate": fromdate,
             "todate": todate
         })
@@ -71,18 +76,24 @@ def fetch_historical_data(symboltoken, fromdate, todate):
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             'X-SourceID': 'WEB',
-            'X-UserType': 'USER'
+            'X-UserType': 'USER',
+            'X-ClientLocalIP': 'CLIENT_LOCAL_IP',  # Some APIs require this
+            'X-ClientPublicIP': 'CLIENT_PUBLIC_IP',
+            'X-MACAddress': 'MAC_ADDRESS'
         }
         
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
         res = conn.getresponse()
         
         if res.status != 200:
-            raise Exception(f"API Error {res.status}: {res.reason}")
+            error_msg = res.read().decode()
+            logger.error(f"API Error {res.status}: {error_msg}")
+            raise Exception(f"API Error {res.status}: {error_msg}")
             
         data = json.loads(res.read().decode())
-        if not data.get('data'):
-            raise Exception("No data in response")
+        
+        if not data.get('status', False):
+            raise Exception(data.get('message', 'Unknown error from API'))
             
         return data
         
