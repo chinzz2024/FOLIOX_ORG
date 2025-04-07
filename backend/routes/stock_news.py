@@ -7,32 +7,23 @@ stock_news_bp = Blueprint('stock_news', __name__)
 @stock_news_bp.route('/stock-news', methods=['GET'])
 def stock_news():
     try:
-        # Get pagination params
-        page = max(1, int(request.args.get('page', 1)))
-        per_page = min(20, max(5, int(request.args.get('per_page', 10))))
-        
-        # Get news
         scraper = NewsScraper()
-        all_news = asyncio.run(scraper.get_news())
+        news = asyncio.run(scraper.get_news())
         
-        # Paginate
-        total = len(all_news)
-        paginated = all_news[(page-1)*per_page : page*per_page]
-        
-        return jsonify({
-            'status': 200,
-            'data': paginated,
-            'meta': {
-                'total': total,
-                'page': page,
-                'per_page': per_page,
-                'has_more': (page*per_page) < total
-            }
-        })
+        if not news:  # Explicit check for empty data
+            return jsonify({
+                'status': 404,
+                'message': 'No news found (login or scraping may have failed)',
+                'data': []
+            }), 404
+
+        # ... rest of your pagination logic ...
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # Log full error to console
         return jsonify({
             'status': 500,
-            'message': f"Failed to fetch news: {str(e)}",
+            'message': str(e),  # Send actual error to frontend
             'data': []
         }), 500

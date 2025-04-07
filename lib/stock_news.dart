@@ -61,29 +61,47 @@ Future<void> _initializePurchasedStocks() async {
   }
 }
 
-  Future<void> fetchStockNews() async {
-    const url = 'https://foliox-backend.onrender.com/stock-news';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
+Future<void> fetchStockNews() async {
+  const url = 'https://foliox-backend.onrender.com/stock-news';
+  try {
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {'Accept': 'application/json'},
+    );
+
+    final Map<String, dynamic> responseData = json.decode(response.body);
+    
+    if (response.statusCode == 200) {
+      if (responseData['status'] == 200) {
         setState(() {
-          stockNews = json.decode(response.body);
+          stockNews = List<Map<String, dynamic>>.from(responseData['data'] ?? []);
           isLoading = false;
           _moveMatchingNewsToMyStockNews();
         });
       } else {
-        setState(() {
-          errorMessage = 'Failed to load stock news. Please try again later.';
-          isLoading = false;
-        });
+        // Handle backend business logic errors (e.g., 404 no news found)
+        throw Exception(responseData['message'] ?? 'No news data available');
       }
-    } catch (e) {
-      setState(() {
-        errorMessage = 'An error occurred: $e';
-        isLoading = false;
-      });
+    } else {
+      // Handle HTTP errors
+      throw Exception(
+        responseData['message'] ?? 
+        'Server responded with ${response.statusCode}'
+      );
     }
+  }  on FormatException {
+    setState(() {
+      errorMessage = 'Data format error: Please contact support';
+      isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      errorMessage = 'Error: ${e.toString().replaceAll(RegExp(r'^Exception: '), '')}';
+      isLoading = false;
+    });
+    debugPrint('Full error: $e');
   }
+}
 
   void _moveMatchingNewsToMyStockNews() {
     List<dynamic> matchingNews = [];
