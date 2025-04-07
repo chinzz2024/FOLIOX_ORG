@@ -30,19 +30,18 @@ def login_and_get_token():
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         raise Exception("Authentication failed")
-
 def fetch_historical_data(symboltoken, fromdate, todate):
     conn = None
     try:
         # Get a fresh token for each request
         authToken = login_and_get_token()
         
-        # Format dates properly - Angel One might expect a specific format
-        # Try ISO format with T separator instead of space
+        # Format dates to match what Angel One expects
+        # Try using YYYY-MM-DD format without time
         def format_date(dt_str):
             try:
                 dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-                return dt.strftime("%Y-%m-%dT%H:%M:00")  # ISO format with seconds
+                return dt.strftime("%Y-%m-%d")  # Just the date part
             except ValueError:
                 raise ValueError(f"Invalid date format: {dt_str}. Use 'YYYY-MM-DD HH:MM'")
         
@@ -52,23 +51,27 @@ def fetch_historical_data(symboltoken, fromdate, todate):
         # Create connection with timeout
         conn = http.client.HTTPSConnection("apiconnect.angelone.in", timeout=15)
         
-        # Update payload with properly formatted data
+        # Update payload with correctly formatted parameters
+        # Using exactly the parameters from your working old code
         payload = json.dumps({
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "ONE_MINUTE",
+            "interval": "FIFTEEN_MINUTE",  # Changed from ONE_MINUTE to match old code
             "fromdate": formatted_from,
             "todate": formatted_to
         })
         
-        # Make sure Authorization header is correctly formatted
+        # Include all headers from your old working code
         headers = {
-            'Authorization': authToken,  # No space before token
+            'Authorization': f'{authToken}',  # Format like your old code
             'X-PrivateKey': api_key,
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-SourceID': 'WEB',  # Include all required headers
-            'X-UserType': 'USER'
+            'X-SourceID': 'WEB',
+            'X-ClientLocalIP': '127.0.0.1',
+            'X-ClientPublicIP': '106.193.147.98',  # Use the same IP as in old code
+            'X-MACAddress': '74:12:b3:c5:f6:76',   # Use the same MAC as in old code
+            'X-UserType': 'USER',
+            'Content-Type': 'application/json'
         }
         
         print(f"Request payload: {payload}")
