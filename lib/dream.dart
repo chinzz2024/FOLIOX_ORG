@@ -318,13 +318,7 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
       child: ListTile(
         title: Text(rate['bank_name'] ?? 'Unknown Bank'),
         subtitle: Text('Interest Rate: ${rate['rate']?.toString() ?? 'N/A'}%'),
-        trailing: IconButton(
-          icon: Icon(Icons.arrow_forward),
-          onPressed: () {
-            interestController.text = rate['rate']?.toString() ?? '8';
-            calculateEMI();
-          },
-        ),
+        
       ),
     );
   }
@@ -424,17 +418,7 @@ class _DreamHomeScreenState extends State<DreamHomeScreen> {
               SizedBox(height: 20),
             ],
 
-            Text('Your Available Assets',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            if (assetList.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text('No assets available for down payment',
-                    style: TextStyle(color: Colors.grey)),
-              )
-            else
-              Column(children: assetList.map((asset) => _buildAssetItem(asset)).toList()),
+            
             
             SizedBox(height: 20),
             Text('Available Home Loan Rates',
