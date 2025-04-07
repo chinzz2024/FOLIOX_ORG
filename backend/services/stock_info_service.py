@@ -36,14 +36,19 @@ def fetch_historical_data(symboltoken, fromdate, todate):
         # Get a fresh token for each request
         authToken = login_and_get_token()
         
-        # Format dates to match what Angel One expects
-        # Try using YYYY-MM-DD format without time
+        # Angel One requires specific date format: "YYYY-MM-DD HH:MM"
         def format_date(dt_str):
             try:
+                # First try parsing with time component
                 dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-                return dt.strftime("%Y-%m-%d")  # Just the date part
+                return dt.strftime("%Y-%m-%d %H:%M")
             except ValueError:
-                raise ValueError(f"Invalid date format: {dt_str}. Use 'YYYY-MM-DD HH:MM'")
+                try:
+                    # Fallback to date-only format (will use default time)
+                    dt = datetime.strptime(dt_str, "%Y-%m-%d")
+                    return dt.strftime("%Y-%m-%d 09:15")  # Default to market open time
+                except ValueError:
+                    raise ValueError(f"Invalid date format: {dt_str}. Use 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM'")
         
         formatted_from = format_date(fromdate)
         formatted_to = format_date(todate)
@@ -51,48 +56,52 @@ def fetch_historical_data(symboltoken, fromdate, todate):
         # Create connection with timeout
         conn = http.client.HTTPSConnection("apiconnect.angelone.in", timeout=15)
         
-        # Update payload with correctly formatted parameters
-        # Using exactly the parameters from your working old code
+        # Update payload with properly formatted data
         payload = json.dumps({
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "FIFTEEN_MINUTE",  # Changed from ONE_MINUTE to match old code
+            "interval": "FIFTEEN_MINUTE",
             "fromdate": formatted_from,
             "todate": formatted_to
         })
         
-        # Include all headers from your old working code
+        # Headers with proper authorization
         headers = {
-            'Authorization': f'{authToken}',  # Format like your old code
+            'Authorization': authToken,
             'X-PrivateKey': api_key,
+            'Content-Type': 'application/json',
             'Accept': 'application/json',
             'X-SourceID': 'WEB',
-            'X-ClientLocalIP': '127.0.0.1',
-            'X-ClientPublicIP': '106.193.147.98',  # Use the same IP as in old code
-            'X-MACAddress': '74:12:b3:c5:f6:76',   # Use the same MAC as in old code
             'X-UserType': 'USER',
-            'Content-Type': 'application/json'
+            'X-ClientLocalIP': '127.0.0.1',
+            'X-ClientPublicIP': '106.193.147.98',
+            'X-MACAddress': '74:12:b3:c5:f6:76'
         }
         
-        print(f"Request payload: {payload}")
-        print(f"Request headers: {headers}")
+        logger.info(f"Request payload: {payload}")
+        logger.info(f"Request headers: {json.dumps(headers, indent=2)}")
         
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
         res = conn.getresponse()
         response_data = res.read().decode('utf-8')
         
-        print(f"Response status: {res.status}")
-        print(f"Response data: {response_data}")
+        logger.info(f"Response status: {res.status}")
+        logger.info(f"Response data: {response_data}")
         
         if res.status != 200:
-            print(f"API Error {res.status}: {response_data}")
-            raise Exception(f"API returned {res.status}: {response_data}")
+            error_msg = f"API Error {res.status}: {response_data}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
             
         data = json.loads(response_data)
+        
+        if not data.get('status', False):
+            raise Exception(data.get('message', 'Unknown API error'))
+            
         return data
             
     except Exception as e:
-        print(f"Error in fetch_historical_data: {str(e)}")
+        logger.error(f"Error in fetch_historical_data: {str(e)}")
         raise
     finally:
         if conn:
