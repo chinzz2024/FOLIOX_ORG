@@ -25,11 +25,11 @@ class _StockDataPageState extends State<StockDataPage> {
   List<CandlestickData> _candlestickData = [];
   double? _lastPrice;
 
- // In StockDataPage.dart, modify your fetchHistoricalData() method
-Future<void> fetchHistoricalData() async {
+ Future<void> fetchHistoricalData() async {
   final String fromDate = '2000-01-01 00:00';
-  final String toDate = '2025-03-27 11:15';
+  final String toDate = '2025-03-26 12:00';
 
+  // Change to your Render backend URL
   final url = Uri.parse('https://foliox-backend.onrender.com/fetch_historical_data');
   
   try {
@@ -44,65 +44,42 @@ Future<void> fetchHistoricalData() async {
     );
 
     if (response.statusCode == 200) {
-      // Check if response body is empty or not valid JSON
-      if (response.body.isEmpty) {
+      final data = json.decode(response.body);
+      if (data['status'] == true) {
         setState(() {
-          _response = 'Error: Received empty response from server';
-        });
-        return;
-      }
-      
-      try {
-        final data = json.decode(response.body);
-        if (data['status'] == true) {
-          setState(() {
-            _response = 'Data fetched successfully';
-            
-            // Check if data and data['data'] exist before accessing
-            if (data.containsKey('data') && 
-                data['data'] != null && 
-                data['data'].containsKey('data') && 
-                data['data']['data'] != null) {
-              
-              _candlestickData = List<CandlestickData>.from(
-                data['data']['data'].map((item) => CandlestickData(
-                      DateTime.parse(item[0]),
-                      item[1].toDouble(),
-                      item[2].toDouble(),
-                      item[3].toDouble(),
-                      item[4].toDouble(),
-                      item[5].toDouble(),
-                    )),
-              );
-              if (_candlestickData.isNotEmpty) {
-                _lastPrice = _candlestickData.last.close;
-              }
-            } else {
-              _response = 'Error: Invalid data format from server';
+          _response = 'Data fetched successfully';
+          if (data['data'] != null && data['data']['data'] != null) {
+            _candlestickData = List<CandlestickData>.from(
+              data['data']['data'].map((item) => CandlestickData(
+                DateTime.parse(item[0]),
+                item[1].toDouble(),
+                item[2].toDouble(),
+                item[3].toDouble(),
+                item[4].toDouble(),
+                item[5].toDouble(),
+              )),
+            );
+            if (_candlestickData.isNotEmpty) {
+              _lastPrice = _candlestickData.last.close;
             }
-          });
-        } else {
-          setState(() {
-            _response = 'Error: ${data['message'] ?? "Unknown error"}';
-          });
-        }
-      } catch (e) {
+          }
+        });
+      } else {
         setState(() {
-          _response = 'Error decoding response: $e';
+          _response = 'Error: ${data['message'] ?? 'Unknown error'}';
         });
       }
     } else {
       setState(() {
-        _response = 'Server error: ${response.statusCode} - ${response.body}';
+        _response = 'Error: ${response.statusCode} - ${response.body}';
       });
     }
   } catch (e) {
     setState(() {
-      _response = 'Connection error: $e';
+      _response = 'Network error: $e';
     });
   }
 }
-
   void _addInvestmentToPortfolio(String shares, double amount) async {
   final User? user = FirebaseAuth.instance.currentUser;
   if (user == null) {
