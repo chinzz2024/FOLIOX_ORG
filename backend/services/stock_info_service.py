@@ -20,71 +20,72 @@ def generate_totp(secret):
     totp = TOTP(secret)
     print(totp)
     return totp.now()
-
 def login_and_get_token():
-    """Logs in and returns auth token."""
+    """Improved login with token validation"""
     try:
         smartApi = SmartConnect(api_key)
         totp = generate_totp(totp_token)
+        
+        # First login attempt
         data = smartApi.generateSession(username, pwd, totp)
-
+        
         if not data['status']:
-            raise Exception(f"Login failed: {data}")
+            # Immediate retry with new TOTP
+            totp = generate_totp(totp_token)
+            data = smartApi.generateSession(username, pwd, totp)
+            if not data['status']:
+                raise Exception(f"Login failed: {data.get('message', 'Unknown error')}")
 
-        logger.info("Login successful")
-        return data['data']['jwtToken']
+        token = data['data']['jwtToken']
+        if len(token) < 100:  # Basic token validation
+            raise Exception("Invalid token length received")
+            
+        logger.info(f"Login successful (Token: {token[:10]}...)")
+        return token
+        
     except Exception as e:
-        logger.error(f"Login failed: {e}")
-        raise e
+        logger.error(f"Login failed: {str(e)}")
+        raise Exception("Please check your credentials and try again")
 
 def fetch_historical_data(symboltoken, fromdate, todate):
-    """Fetches historical data after automatic login."""
+    """More robust data fetching"""
     try:
         authToken = login_and_get_token()
-        print(f"Token length: {len(authToken) if authToken else 0}")
         
-        historicParam = {
+        # Verify token format
+        if not authToken.startswith('eyJ'):  # JWT tokens typically start with eyJ
+            raise Exception("Invalid token format")
+            
+        conn = http.client.HTTPSConnection("apiconnect.angelone.in")
+        payload = json.dumps({
             "exchange": "NSE",
             "symboltoken": symboltoken,
-            "interval": "FIFTEEN_MINUTE",
+            "interval": "ONE_MINUTE",  # More reliable interval
             "fromdate": fromdate,
-            "todate": todate,
-        }
+            "todate": todate
+        })
         
-        conn = http.client.HTTPSConnection("apiconnect.angelone.in")
-        payload = json.dumps(historicParam)
         headers = {
-            'Authorization': f'Bearer {authToken}',  # Added 'Bearer' prefix
-            'X-PrivateKey': 'VJ5iztNm',
+            'Authorization': f'Bearer {authToken}',
+            'X-PrivateKey': api_key,
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
             'X-SourceID': 'WEB',
-            'X-ClientLocalIP': '0.0.0.0',
-            'X-ClientPublicIP': '106.193.147.98',  # Uncommented
-            'X-MACAddress': '74:12:b3:c5:f6:76',    # Uncommented
-            'X-UserType': 'USER',                   # Uncommented
-            'Content-Type': 'application/json'
+            'X-UserType': 'USER'
         }
         
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
         res = conn.getresponse()
         
-        # Check response status before parsing
-        status = res.status
-        logger.info(f"Response status: {status}")
-        
-        data = res.read().decode()
-        logger.info(f"Raw Data Fetched: {data}")
-        
-        if not data:
-            logger.error("Empty response received from API")
-            return None
+        if res.status != 200:
+            raise Exception(f"API Error {res.status}: {res.reason}")
             
-        try:
-            return json.loads(data)
-        except json.JSONDecodeError as je:
-            logger.error(f"JSON decode error: {je}")
-            return None
+        data = json.loads(res.read().decode())
+        if not data.get('data'):
+            raise Exception("No data in response")
             
+        return data
+        
     except Exception as e:
-        logger.exception(f"Error fetching historical data: {e}")
+        logger.error(f"API Call Failed: {str(e)}")
         return None
