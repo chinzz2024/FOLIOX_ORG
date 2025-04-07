@@ -3,8 +3,7 @@ import asyncio
 from bs4 import BeautifulSoup
 import json
 from datetime import datetime
-from app import cache
-
+from extensions import cache  # Import from extensions instead of app
 class NewsScraper:
     def __init__(self):
         self.login_url = "https://www.moneycontrol.com/mc/login"
