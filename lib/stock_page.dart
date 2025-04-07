@@ -25,43 +25,58 @@ class _StockDataPageState extends State<StockDataPage> {
   List<CandlestickData> _candlestickData = [];
   double? _lastPrice;
 
-Future<void> fetchHistoricalData() async {
-  // Use proper format with time component
-  final fromDate = '2025-04-07 09:15';  // Market open time
-  final toDate = '2025-04-07 15:30';    // Market close time
+  Future<void> fetchHistoricalData() async {
+    final String fromDate = '2000-01-01 00:00';
+    final String toDate = '2025-03-26 12:00';
 
-  try {
+    final url = Uri.parse('http://127.0.0.1:5000/fetch_historical_data');
     final response = await http.post(
-      Uri.parse('https://foliox-backend.onrender.com/fetch_historical_data'),
+      url,
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'symboltoken': widget.symbolToken,
         'fromdate': fromDate,
         'todate': toDate,
       }),
-    ).timeout(Duration(seconds: 15));
+    );
 
-    final responseData = json.decode(response.body);
-    
     if (response.statusCode == 200) {
-      if (responseData['status'] == true) {
-        // Process successful response
-      } else {
+      try {
+        final data = json.decode(response.body);
+        if (data['status'] == true) {
+          setState(() {
+            _response = 'Data fetched successfully';
+            _candlestickData = List<CandlestickData>.from(
+              data['data']['data'].map((item) => CandlestickData(
+                    DateTime.parse(item[0]),
+                    item[1].toDouble(),
+                    item[2].toDouble(),
+                    item[3].toDouble(),
+                    item[4].toDouble(),
+                    item[5].toDouble(),
+                  )),
+            );
+            if (_candlestickData.isNotEmpty) {
+              _lastPrice = _candlestickData.last.close;
+            }
+          });
+        } else {
+          setState(() {
+            _response = 'Error: ${data['message']}';
+          });
+        }
+      } catch (e) {
         setState(() {
-          _response = responseData['message'] ?? 'API request failed';
+          _response = 'Error decoding response: $e';
         });
       }
     } else {
       setState(() {
-        _response = 'Server error: ${response.statusCode}';
+        _response = 'Error: ${response.body}';
       });
     }
-  } catch (e) {
-    setState(() => _response = 'Error: ${e.toString()}');
   }
-}
-
-  void _addInvestmentToPortfolio(String shares, double amount) async {
+void _addInvestmentToPortfolio(String shares, double amount) async {
   final User? user = FirebaseAuth.instance.currentUser;
   if (user == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -71,41 +86,59 @@ Future<void> fetchHistoricalData() async {
   }
 
   try {
-    // Reference to the user's investments document
     final userInvestmentsRef = FirebaseFirestore.instance
         .collection('user_investments')
         .doc(user.uid);
 
-    // Get the current investments
-    final docSnapshot = await userInvestmentsRef.get();
-    
-    // Prepare the new investment data
-    final newInvestmentData = {
-      'shares': int.parse(shares),
-      'purchasePrice': _lastPrice,
-      'totalInvestment': amount,
-      'investmentDate': Timestamp.now(),
-    };
+    // Get current investments in a transaction
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userInvestmentsRef);
+      
+      Map<String, dynamic> currentInvestments = {};
+      if (snapshot.exists) {
+        currentInvestments = Map<String, dynamic>.from(snapshot.data()!);
+      }
 
-    // If the document exists, update or add to the existing investments
-    if (docSnapshot.exists) {
-      // Get the current investments map
-      Map<String, dynamic> currentInvestments = 
-          Map<String, dynamic>.from(docSnapshot.data() ?? {});
+      final newShares = int.parse(shares);
+      final newInvestmentData = {
+        'shares': newShares,
+        'purchasePrice': _lastPrice,
+        'totalInvestment': amount,
+        'investmentDate': Timestamp.now(),
+      };
 
-      // Update or add the investment for this specific stock
-      currentInvestments[widget.stockName] = newInvestmentData;
+      // Check if stock already exists
+      if (currentInvestments.containsKey(widget.stockName)) {
+        // Update existing stock
+        final existingStock = currentInvestments[widget.stockName];
+        final updatedShares = existingStock['shares'] + newShares;
+        final updatedInvestment = existingStock['totalInvestment'] + amount;
+        
+        currentInvestments[widget.stockName] = {
+          'shares': updatedShares,
+          'purchasePrice': _lastPrice, // You might want to calculate average price instead
+          'totalInvestment': updatedInvestment,
+          'investmentDate': existingStock['investmentDate'], // Keep original date
+        };
+      } else {
+        // Add new stock
+        currentInvestments[widget.stockName] = newInvestmentData;
+      }
 
-      // Update the entire document
-      await userInvestmentsRef.set(currentInvestments, SetOptions(merge: true));
-    } else {
-      // Create a new document with the first investment
-      await userInvestmentsRef.set({
-        widget.stockName: newInvestmentData
-      });
-    }
+      // Update the document
+      transaction.set(userInvestmentsRef, currentInvestments);
+    });
 
-    // Show confirmation message
+    // Add transaction record
+    await FirebaseFirestore.instance.collection('transactions').add({
+      'userId': user.uid,
+      'stockName': widget.stockName,
+      'type': 'buy',
+      'quantity': int.parse(shares),
+      'price': _lastPrice,
+      'timestamp': Timestamp.now(),
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -114,7 +147,6 @@ Future<void> fetchHistoricalData() async {
       ),
     );
   } catch (e) {
-    // Show error message if something goes wrong
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: $e')),
     );

@@ -283,7 +283,7 @@ class _PlannerPageState extends State<PlannerPage> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+             
               child: BottomNavigationBar(
                 backgroundColor: Colors.white,
                 currentIndex: _currentIndex,

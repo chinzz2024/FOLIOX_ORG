@@ -35,12 +35,18 @@ class _StockSellState extends State<StockSell> {
 
       // Transform the investments into a list of stock maps
       List<Map<String, dynamic>> userStocks = investmentsData.entries.map((entry) {
+        // Calculate asset value (quantity * current price)
+        double currentPrice = entry.value['purchasePrice'] ?? 0.0;
+        int shares = entry.value['shares'] ?? 0;
+        double assetValue = currentPrice * shares;
+        
         return {
           'companyName': entry.key, // Stock name is now the key
           'quantity': entry.value['shares'],
-          'currentPrice': entry.value['purchasePrice'],
+          'currentPrice': currentPrice,
           'investmentDate': entry.value['investmentDate'],
-          'totalInvestment': entry.value['totalInvestment']
+          'totalInvestment': entry.value['totalInvestment'],
+          'assetValue': assetValue
         };
       }).toList();
 
@@ -161,140 +167,223 @@ class _StockSellState extends State<StockSell> {
             );
           }
 
-          return ListView.builder(
-            padding: EdgeInsets.all(16),
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              var stock = snapshot.data![index];
-              return Card(
-                elevation: 5,
-                shape: RoundedRectangleBorder(
+          // Calculate total portfolio value
+          double totalPortfolioValue = snapshot.data!.fold(
+            0, (sum, stock) => sum + (stock['assetValue'] ?? 0));
+
+          return Column(
+            children: [
+              // Portfolio summary card
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F2027), Color(0xFF203A43)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    )
+                  ],
                 ),
-                margin: EdgeInsets.only(bottom: 16),
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            stock['companyName'] ?? 'Unknown',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          Text(
-                            'Qty: ${stock['quantity']}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total Portfolio Value',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
                       ),
-                      SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Current Price: ₹${stock['currentPrice']?.toStringAsFixed(2) ?? 'N/A'}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.green,
-                              fontWeight: FontWeight.w600,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '₹${totalPortfolioValue.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Stock list
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    var stock = snapshot.data![index];
+                    return Card(
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      margin: EdgeInsets.only(bottom: 16),
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    stock['companyName'] ?? 'Unknown',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  'Qty: ${stock['quantity']}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Show sell dialog
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  int sellQuantity = 1;
-                                  return AlertDialog(
-                                    title: Text('Sell ${stock['companyName']}'),
-                                    content: StatefulBuilder(
-                                      builder: (context, setState) {
-                                        return Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text('Select quantity to sell:'),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                IconButton(
-                                                  icon: Icon(Icons.remove),
-                                                  onPressed: () {
-                                                    if (sellQuantity > 1) {
-                                                      setState(() {
-                                                        sellQuantity--;
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                                Text(
-                                                  '$sellQuantity',
-                                                  style: TextStyle(fontSize: 20),
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(Icons.add),
-                                                  onPressed: () {
-                                                    if (sellQuantity < stock['quantity']) {
-                                                      setState(() {
-                                                        sellQuantity++;
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                              ],
+                            SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Current Price: ₹${stock['currentPrice']?.toStringAsFixed(2) ?? 'N/A'}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Asset Value: ₹${stock['assetValue']?.toStringAsFixed(2) ?? 'N/A'}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.blue[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // Show sell dialog
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        int sellQuantity = 1;
+                                        return AlertDialog(
+                                          title: Text('Sell ${stock['companyName']}'),
+                                          content: StatefulBuilder(
+                                            builder: (context, setState) {
+                                              return Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text('Select quantity to sell:'),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      IconButton(
+                                                        icon: Icon(Icons.remove),
+                                                        onPressed: () {
+                                                          if (sellQuantity > 1) {
+                                                            setState(() {
+                                                              sellQuantity--;
+                                                            });
+                                                          }
+                                                        },
+                                                      ),
+                                                      Text(
+                                                        '$sellQuantity',
+                                                        style: TextStyle(fontSize: 20),
+                                                      ),
+                                                      IconButton(
+                                                        icon: Icon(Icons.add),
+                                                        onPressed: () {
+                                                          if (sellQuantity < stock['quantity']) {
+                                                            setState(() {
+                                                              sellQuantity++;
+                                                            });
+                                                          }
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  SizedBox(height: 10),
+                                                  Text(
+                                                    'Amount: ₹${(sellQuantity * stock['currentPrice']).toStringAsFixed(2)}',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              child: Text('Cancel'),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                            ElevatedButton(
+                                              child: Text('Sell'),
+                                              onPressed: () {
+                                                _sellStock(
+                                                  stock['companyName'],
+                                                  sellQuantity,
+                                                  stock['currentPrice']
+                                                );
+                                                Navigator.of(context).pop();
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                              ),
                                             ),
                                           ],
                                         );
                                       },
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color.fromARGB(255, 242, 9, 9),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        child: Text('Cancel'),
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                      ElevatedButton(
-                                        child: Text('Sell'),
-                                        onPressed: () {
-                                          _sellStock(
-                                            stock['companyName'],
-                                            sellQuantity,
-                                            stock['currentPrice']
-                                          );
-                                          Navigator.of(context).pop();
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromARGB(255, 242, 9, 9),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                                  ),
+                                  child: Text('Sell', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
                             ),
-                            child: Text('Sell',style: TextStyle(color: Colors.white),),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
       ),

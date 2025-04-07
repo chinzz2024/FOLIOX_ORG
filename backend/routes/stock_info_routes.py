@@ -1,52 +1,23 @@
 from flask import Blueprint, request, jsonify
-import logging
 from services.stock_info_service import fetch_historical_data
-
-# Create logger
-logger = logging.getLogger(__name__)
 
 stock_info_bp = Blueprint('stock_info', __name__)
 
 @stock_info_bp.route('/fetch_historical_data', methods=['POST'])
 def fetch_historical_data_route():
+    """API route to fetch historical stock data."""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"status": False, "message": "Request body must be JSON"}), 400
+        symboltoken = request.json.get('symboltoken')
+        fromdate = request.json.get('fromdate')
+        todate = request.json.get('todate')
 
-        required = {'symboltoken', 'fromdate', 'todate'}
-        if not required.issubset(data.keys()):
-            return jsonify({
-                "status": False,
-                "message": "Missing required fields",
-                "required": list(required)
-            }), 400
+        if not symboltoken or not fromdate or not todate:
+            return jsonify({"status": False, "message": "Missing fields"}), 400
 
-        # Log the request data for debugging
-        logger.info(f"Request data: {data}")
-        
-        result = fetch_historical_data(
-            str(data['symboltoken']),  # Ensure string type
-            data['fromdate'],
-            data['todate']
-        )
-
-        return jsonify({
-            "status": True,
-            "data": result
-        }), 200
-
-    except ValueError as e:
-        logger.error(f"Validation error: {str(e)}")
-        return jsonify({
-            "status": False,
-            "message": f"Validation error: {str(e)}",
-            "type": "VALIDATION"
-        }), 400
+        data = fetch_historical_data(symboltoken, fromdate, todate)
+        if data:
+            return jsonify({"status": True, "data": data}), 200
+        else:
+            return jsonify({"status": False, "message": "Failed to fetch data"}), 500
     except Exception as e:
-        logger.exception(f"API Error: {str(e)}")
-        return jsonify({
-            "status": False,
-            "message": str(e),
-            "type": "SERVER_ERROR"
-        }), 500
+        return jsonify({"status": False, "message": str(e)}), 500
