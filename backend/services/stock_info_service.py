@@ -40,7 +40,9 @@ def login_and_get_token():
 def fetch_historical_data(symboltoken, fromdate, todate):
     """Fetches historical data after automatic login."""
     try:
-        authToken = login_and_get_token()  # Automatically log in and get token
+        authToken = login_and_get_token()
+        print(f"Token length: {len(authToken) if authToken else 0}")
+        
         historicParam = {
             "exchange": "NSE",
             "symboltoken": symboltoken,
@@ -48,29 +50,41 @@ def fetch_historical_data(symboltoken, fromdate, todate):
             "fromdate": fromdate,
             "todate": todate,
         }
+        
         conn = http.client.HTTPSConnection("apiconnect.angelone.in")
         payload = json.dumps(historicParam)
         headers = {
-            'Authorization': f' {authToken}',  # Pass the authToken here
-            'X-PrivateKey': 'VJ5iztNm',                # Replace with your actual API Key
+            'Authorization': f'Bearer {authToken}',  # Added 'Bearer' prefix
+            'X-PrivateKey': 'VJ5iztNm',
             'Accept': 'application/json',
             'X-SourceID': 'WEB',
-            'X-ClientLocalIP': '0.0.0.0',           # Replace with actual IP
-            # 'X-ClientPublicIP': '106.193.147.98',     # Replace with actual IP
-            # 'X-MACAddress': '74:12:b3:c5:f6:76',      # Replace with actual MAC address
-            # 'X-UserType': 'USER',
+            'X-ClientLocalIP': '0.0.0.0',
+            'X-ClientPublicIP': '106.193.147.98',  # Uncommented
+            'X-MACAddress': '74:12:b3:c5:f6:76',    # Uncommented
+            'X-UserType': 'USER',                   # Uncommented
             'Content-Type': 'application/json'
         }
+        
         conn.request("POST", "/rest/secure/angelbroking/historical/v1/getCandleData", payload, headers)
         res = conn.getresponse()
+        
+        # Check response status before parsing
+        status = res.status
+        logger.info(f"Response status: {status}")
+        
         data = res.read().decode()
-
-        # Print and log the response received from the backend
-        print("Raw Data Fetched:", data)
         logger.info(f"Raw Data Fetched: {data}")
-
-        logger.info("Historical data fetched successfully")
-        return json.loads(data)
+        
+        if not data:
+            logger.error("Empty response received from API")
+            return None
+            
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {je}")
+            return None
+            
     except Exception as e:
         logger.exception(f"Error fetching historical data: {e}")
         return None
