@@ -58,7 +58,6 @@ class _IncomePageState extends State<IncomePage> {
     'Dream Car',
     'Dream Home',
     'Marriage',
-    'Emergency Fund',
   ];
   final Map<String, TextEditingController> retirementControllers = {
     'currentAge': TextEditingController(),
