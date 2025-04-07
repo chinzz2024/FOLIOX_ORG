@@ -7,11 +7,10 @@ from pyotp import TOTP
 
 logger = logging.getLogger(__name__)
 
-# Get credentials from environment variables
-api_key = os.getenv('API_KEY', 'VJ5iztNm')
-username = os.getenv('ANGELONE_USERNAME', 'AAAF841327')
-pwd = os.getenv('ANGELONE_PASSWORD', '2504')
-totp_token = os.getenv('TOTP_SECRET', 'VKEN7FGDBEOFPJDNUYMU5GQ3DY')
+api_key = "VJ5iztNm"
+username = "AAAF841327"
+pwd = "2504"
+totp_token = "VKEN7FGDBEOFPJDNUYMU5GQ3DY"
 
 def generate_totp(secret):
     return TOTP(secret).now()
@@ -45,7 +44,7 @@ def fetch_historical_data(symboltoken, fromdate, todate):
         })
         
         headers = {
-            'Authorization': authToken,  # Removed 'Bearer' if API doesn't expect it
+            'Authorization': f' {authToken}',  
             'X-PrivateKey': api_key,
             'Accept': 'application/json',
             'Content-Type': 'application/json',
