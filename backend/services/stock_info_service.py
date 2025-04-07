@@ -5,6 +5,7 @@ import os
 from SmartApi import SmartConnect
 from pyotp import TOTP
 from datetime import datetime
+
 logger = logging.getLogger(__name__)
 
 api_key = "VJ5iztNm"
@@ -29,7 +30,8 @@ def login_and_get_token():
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         raise Exception("Authentication failed")
- def fetch_historical_data(symboltoken, fromdate, todate):
+
+def fetch_historical_data(symboltoken, fromdate, todate):
     conn = None
     try:
         # Get a fresh token for each request
