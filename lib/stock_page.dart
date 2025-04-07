@@ -31,7 +31,7 @@ Future<void> fetchHistoricalData() async {
 
   try {
     final response = await http.post(
-      Uri.parse('https://foliox-backend.onrender.com/stock-news'),
+      Uri.parse('https://foliox-backend.onrender.com/fetch_historical_data'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'symboltoken': widget.symbolToken,
