@@ -24,6 +24,7 @@ class _StockDataPageState extends State<StockDataPage> {
   String _response = '';
   List<CandlestickData> _candlestickData = [];
   double? _lastPrice;
+
 Future<void> fetchHistoricalData() async {
   // Use proper ISO format dates
   final fromDate = '2025-03-26 09:15'; 
@@ -47,19 +48,17 @@ Future<void> fetchHistoricalData() async {
       
       setState(() {
         _candlestickData = candles.map<CandlestickData>((item) {
-          // Add type checking and parsing safeguards
-          try {
-            return CandlestickData(
-              DateTime.parse(item[0].toString()),
-              double.parse(item[1].toString()),
-              double.parse(item[2].toString()),
-              double.parse(item[3].toString()),
-              double.parse(item[4].toString()),
-              double.parse(item[5].toString()),
-            );
-          } catch (e) {
-            throw FormatException('Invalid candle format at index ${candles.indexOf(item)}');
-          }
+          // Add defensive parsing with error handling
+          return CandlestickData(
+            // Parse date string safely
+            DateTime.parse(item[0].toString()),
+            // Ensure numeric values are properly converted
+            double.parse(item[1].toString()),
+            double.parse(item[2].toString()),
+            double.parse(item[3].toString()),
+            double.parse(item[4].toString()),
+            double.parse(item[5].toString()),
+          );
         }).toList();
         
         _lastPrice = _candlestickData.isNotEmpty 
@@ -71,12 +70,11 @@ Future<void> fetchHistoricalData() async {
         _response = responseData['message'] ?? 'Unknown error';
       });
     }
-  } on FormatException catch (e) {
-    setState(() => _response = 'Data format error: ${e.message}');
   } catch (e) {
     setState(() => _response = 'Error: ${e.toString()}');
   }
 }
+
   void _addInvestmentToPortfolio(String shares, double amount) async {
   final User? user = FirebaseAuth.instance.currentUser;
   if (user == null) {

@@ -4,7 +4,7 @@ import logging
 import os
 from SmartApi import SmartConnect
 from pyotp import TOTP
-
+from datetime import datetime
 logger = logging.getLogger(__name__)
 
 api_key = "VJ5iztNm"
@@ -93,4 +93,5 @@ def fetch_historical_data(symboltoken, fromdate, todate):
         logger.error(f"Error in fetch_historical_data: {str(e)}", exc_info=True)
         raise
     finally:
-        conn.close()
+        if 'conn' in locals():
+            conn.close()
