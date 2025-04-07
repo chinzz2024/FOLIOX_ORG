@@ -343,38 +343,7 @@ Widget _buildExpenseSection() {
         total: totalExpenses,
         color: Color(0xFF26D0CE),
       ),
-              SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildExpenseTag(
-                    icon: Icons.shopping_cart,
-                    label: 'Shopping',
-                    value: '₹${financialData['shopping']?.toStringAsFixed(2) ?? '0.00'}',
-                  ),
-                  _buildExpenseTag(
-                    icon: Icons.airplanemode_active,
-                    label: 'Travel',
-                    value: '₹${financialData['travelVacations']?.toStringAsFixed(2) ?? '0.00'}',
-                  ),
-                  _buildExpenseTag(
-                    icon: Icons.fitness_center,
-                    label: 'Fitness',
-                    value: '₹${financialData['fitnessSym']?.toStringAsFixed(2) ?? '0.00'}',
-                  ),
-                  _buildExpenseTag(
-                    icon: Icons.movie,
-                    label: 'Entertainment',
-                    value: '₹${financialData['entertainment']?.toStringAsFixed(2) ?? '0.00'}',
-                  ),
-                  _buildExpenseTag(
-                    icon: Icons.palette,
-                    label: 'Hobbies',
-                    value: '₹${financialData['hobbiesLeisure']?.toStringAsFixed(2) ?? '0.00'}',
-                  ),
-                ],
-              ),
+              
             ],
           ),
         ),
@@ -593,6 +562,8 @@ Widget _buildExpenseSection() {
       ),
     );
   }
+
+  
 
   BottomNavigationBar _buildBottomNavigationBar() {
     return BottomNavigationBar(

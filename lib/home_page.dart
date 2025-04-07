@@ -201,10 +201,7 @@ class _HomepageState extends State<Homepage> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(25),
-                topRight: Radius.circular(25),
-              ),
+             
               child: BottomNavigationBar(
                 backgroundColor: Colors.white,
                 currentIndex: _currentIndex,
