@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:math';
 
 import 'home_page.dart';
 
@@ -61,74 +60,31 @@ Future<void> _initializePurchasedStocks() async {
     debugPrint('Error fetching purchased stocks: $e');
   }
 }
-Future<void> fetchStockNews() async {
-  setState(() {
-    isLoading = true;
-    errorMessage = '';
-  });
-  
-  const url = 'https://foliox-backend.onrender.com/stock-news';
-  try {
-    debugPrint('Fetching stock news from: $url');
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {'Accept': 'application/json'},
-    ).timeout(
-      const Duration(seconds: 30),
-      onTimeout: () => throw Exception('Connection timeout. The server might be under heavy load.'),
-    );
 
-    debugPrint('Response status: ${response.statusCode}');
-    debugPrint('Response body: ${response.body.substring(0, min(100, response.body.length))}...');
-    
-    final Map<String, dynamic> responseData = json.decode(response.body);
-    
-    if (response.statusCode == 200) {
-      if (responseData['status'] == 200) {
-        final newsList = List<Map<String, dynamic>>.from(responseData['data'] ?? []);
-        debugPrint('Fetched ${newsList.length} news items');
-        
+  Future<void> fetchStockNews() async {
+    const url = 'http://127.0.0.1:5000/stock-news';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
         setState(() {
-          stockNews = newsList;
+          stockNews = json.decode(response.body);
           isLoading = false;
-          if (responseData['message'] != null && responseData['message'].contains('public news')) {
-            // Inform user we're using public feed
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Using public news feed'),
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
           _moveMatchingNewsToMyStockNews();
         });
-      } else if (responseData['status'] == 404) {
-        // Handle 404 specifically
-        throw Exception(responseData['message'] ?? 'No news data available');
       } else {
-        // Handle other backend status codes
-        throw Exception(responseData['message'] ?? 'Error retrieving news');
+        setState(() {
+          errorMessage = 'Failed to load stock news. Please try again later.';
+          isLoading = false;
+        });
       }
-    } else {
-      // Handle HTTP errors
-      throw Exception(
-        responseData['message'] ?? 
-        'Server responded with ${response.statusCode}'
-      );
+    } catch (e) {
+      setState(() {
+        errorMessage = 'An error occurred: $e';
+        isLoading = false;
+      });
     }
-  } on FormatException {
-    setState(() {
-      errorMessage = 'Data format error: Please contact support';
-      isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      errorMessage = 'Error: ${e.toString().replaceAll(RegExp(r'^Exception: '), '')}';
-      isLoading = false;
-    });
-    debugPrint('Full error: $e');
   }
-}
+
   void _moveMatchingNewsToMyStockNews() {
     List<dynamic> matchingNews = [];
     for (var news in stockNews) {
@@ -145,7 +101,13 @@ Future<void> fetchStockNews() async {
 
   Future<void> _openUrl(String url) async {
     final Uri uri = Uri.parse(url);
-    launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the link')),
+      );
+    }
   }
 
   Widget _buildNewsCard(dynamic news, {bool isMyStock = false}) {
@@ -235,7 +197,6 @@ Widget build(BuildContext context) {
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 22
             ),
           ),
           leading: IconButton(
@@ -250,7 +211,6 @@ Widget build(BuildContext context) {
           ),
           backgroundColor: Color(0xFF0F2027), // Transparent to blend with gradient
           elevation: 0,
-          centerTitle: true,
           bottom: TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,

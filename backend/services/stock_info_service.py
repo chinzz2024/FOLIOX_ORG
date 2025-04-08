@@ -8,7 +8,7 @@ from SmartApi import SmartConnect
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Replace these with your actual credentials
+#  with your actual credentials
 api_key = "VJ5iztNm"
 username = "AAAF841327"
 pwd = "2504"
