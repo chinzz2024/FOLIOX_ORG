@@ -1,44 +1,9 @@
-from flask import Blueprint, jsonify, request
-from services.stock_service import NewsScraper
-import asyncio
+from flask import Blueprint, jsonify
+from services.stock_service import fetch_stock_news
 
 stock_news_bp = Blueprint('stock_news', __name__)
+
 @stock_news_bp.route('/stock-news', methods=['GET'])
-def stock_news():
-    try:
-        scraper = NewsScraper()
-        news = asyncio.run(scraper.get_news())
-        
-        if not news:  # Explicit check for empty data
-            # Try fallback to public news if available
-            try:
-                fallback_news = asyncio.run(scraper.get_public_news())
-                if fallback_news:
-                    return jsonify({
-                        'status': 200,
-                        'message': 'Using public news feed (login failed)',
-                        'data': fallback_news
-                    })
-            except Exception as fallback_error:
-                print(f"Fallback news retrieval failed: {str(fallback_error)}")
-            
-            return jsonify({
-                'status': 404,
-                'message': 'No news found (login or scraping may have failed)',
-                'data': []
-            }), 404
-            
-        return jsonify({
-            'status': 200,
-            'message': 'Success',
-            'data': news
-        })
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()  # Log full error to console
-        return jsonify({
-            'status': 500,
-            'message': str(e),  # Send actual error to frontend
-            'data': []
-        }), 500
+def get_stock_news():
+    stock_news = fetch_stock_news()
+    return jsonify(stock_news)

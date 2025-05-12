@@ -536,15 +536,7 @@ Card(
               const SizedBox(height: 10),
               buildTextField('Years to Goal', yearsController),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: calculateMonthlySavings,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: const Text('Calculate Savings Plan'),
-              ),
+              
               const SizedBox(height: 20),
 
            if (savingsRecommendation.isNotEmpty) ...[
@@ -626,18 +618,10 @@ Card(
                         ],
                       ),
                       const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Save EMI plan to goals
-                          _saveEMIPlan();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        child: const Text('Save EMI Plan'),
-                      ),
+                      
+                       
+                        
+                      
                     ],
                   ),
                 ),
