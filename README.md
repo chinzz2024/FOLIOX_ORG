@@ -1,9 +1,9 @@
 
 # 💼 FolioX – Financial Portfolio Management System
 
-**FolioX** is a cross-platform application designed to help users efficiently manage their financial portfolios, including investments in stocks, bonds, and mutual funds. The system provides real-time insights, organized tracking, and a user-friendly interface for personal finance planning.
+FolioX is a cross-platform application designed to help users efficiently manage their financial portfolios, including investments in stocks, bonds, and mutual funds. The system provides real-time insights, organized tracking, and a user-friendly interface for personal finance planning.
 
-This project was developed as part of the final year B.Tech curriculum at **Government Engineering College, Idukki**, under **APJ Abdul Kalam Technological University**.
+This project was developed as part of the final year B.Tech curriculum at Government Engineering College, Idukki, under APJ Abdul Kalam Technological University.
 
 ---
 
@@ -28,11 +28,11 @@ This project was developed as part of the final year B.Tech curriculum at **Gove
 
 ## 🛠️ Tech Stack
 
-| Layer      | Tech Used                 |
-|------------|---------------------------|
-| Frontend   | Flutter                   |
-| Backend    | Django (Python)           |
-| Database   | Firebase Realtime Database |
+| Layer      | Tech Used                           |
+|------------|-------------------------------------|
+| Frontend   | Flutter                             |
+| Backend    | Django (Python)                     |
+| Database   | Firebase Realtime Database          |
 | Tools      | BeautifulSoup (for scraping), Firebase Auth |
 
 ---
@@ -48,7 +48,8 @@ This project was developed as part of the final year B.Tech curriculum at **Gove
 
 ## 🖼️ Screenshots
 
-> *(Insert UI or feature screenshots here once available)*
+![1](./assets/c1.png)  
+![2](./assets/c2.png)
 
 ---
 
@@ -98,5 +99,3 @@ flutter run
 ## 📄 License
 
 This project is developed as an academic submission. You are free to fork, modify, and use it for learning or educational purposes.
-
----
