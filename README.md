@@ -1,17 +1,102 @@
-# foliox
 
-A new Flutter project.
+# 💼 FolioX – Financial Portfolio Management System
 
-## Getting Started
+**FolioX** is a cross-platform application designed to help users efficiently manage their financial portfolios, including investments in stocks, bonds, and mutual funds. The system provides real-time insights, organized tracking, and a user-friendly interface for personal finance planning.
 
-This project is a starting point for a Flutter application.
+This project was developed as part of the final year B.Tech curriculum at **Government Engineering College, Idukki**, under **APJ Abdul Kalam Technological University**.
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🚀 Features
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# FOLIOX_ORG
+- 📊 **Portfolio Management**
+  - Add and track investments in stocks, SIPs, and mutual funds
+  - Calculate total asset value and view portfolio performance
+
+- 🎯 **Financial Goal Planning**
+  - Set and manage custom goals like retirement, marriage, home/car loan
+  - Estimate required savings, investments, and timelines
+
+- 📰 **Stock Market News**
+  - Monitor real-time stock news to aid informed decision-making
+
+- 🔐 **Secure Login & Data Handling**
+  - Firebase authentication
+  - Cloud-based storage and syncing
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer      | Tech Used                 |
+|------------|---------------------------|
+| Frontend   | Flutter                   |
+| Backend    | Django (Python)           |
+| Database   | Firebase Realtime Database |
+| Tools      | BeautifulSoup (for scraping), Firebase Auth |
+
+---
+
+## 🧪 Testing Summary
+
+- ✅ Unit Testing (components like goal planner, stock tracker)
+- 🔄 Integration Testing (frontend ↔ backend)
+- 🌐 System Testing (end-to-end functionality)
+- 👤 User Acceptance Testing (feedback-based refinements)
+
+---
+
+## 🖼️ Screenshots
+
+> *(Insert UI or feature screenshots here once available)*
+
+---
+
+## 📚 Setup Instructions
+
+### 🔧 Backend – Django
+
+```bash
+cd backend
+pip install -r requirements.txt
+python manage.py runserver
+```
+
+### 💻 Frontend – Flutter
+
+```bash
+cd frontend
+flutter pub get
+flutter run
+```
+
+> Make sure your Firebase configuration is correctly linked in both layers.
+
+---
+
+## 👥 Team
+
+- Alen Joseph John  
+- Alwin Shaji  
+- Pranav Mohan  
+- Tinu Johnson  
+
+**Project Guide:** Prof. Anish Abraham  
+**Institution:** Government Engineering College Idukki
+
+---
+
+## 📌 Future Enhancements
+
+- Portfolio export as PDF  
+- Expense tracking and income analysis  
+- Improved data visualization for investments  
+- Notifications and reminders for SIPs/goals  
+
+---
+
+## 📄 License
+
+This project is developed as an academic submission. You are free to fork, modify, and use it for learning or educational purposes.
+
+---
