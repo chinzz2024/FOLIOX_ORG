@@ -48,8 +48,8 @@ This project was developed as part of the final year B.Tech curriculum at Govern
 
 ## 🖼️ Screenshots
 
-![1](./assets/c1.png)  
-![2](./assets/c2.png)
+![1](./assets/c1.jpg)  
+![2](./assets/c2.jpg)
 
 ---
 
